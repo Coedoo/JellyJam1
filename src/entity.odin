@@ -44,7 +44,7 @@ Entity :: struct {
     //
     speed: f32,
     acceleration: f32,
-    angularSpeed: f32,
+    angularSpeed: Deg,
 
     //
     sprite: Image_Asset,
@@ -103,7 +103,7 @@ UpdateEntity :: proc(e: ^Entity) {
 
     if .BulletMovement in e.flags {
         e.speed += e.acceleration * frameTime
-        e.rotation += Deg(e.angularSpeed * frameTime)
+        e.rotation += e.angularSpeed * Deg(frameTime)
 
         rads := f32(e.rotation) * math.RAD_PER_DEG
         forward := v2{math.cos(rads), math.sin(rads)}
@@ -115,13 +115,12 @@ UpdateEntity :: proc(e: ^Entity) {
         bounds := GetEntityBounds(e)
          // wasInsideCamera := e->isInsideCamera
 
-        if( bounds.left  < cameraBounds.left  ||
-            bounds.right > cameraBounds.right ||
-            bounds.bot   < cameraBounds.bot   ||
-            bounds.top   > cameraBounds.top)
+        if bounds.left  < cameraBounds.left  ||
+           bounds.right > cameraBounds.right ||
+           bounds.bot   < cameraBounds.bot   ||
+           bounds.top   > cameraBounds.top
         {
             e.toDestroy = true
-            fmt.println("destroi")
         }
     }
 
@@ -155,7 +154,7 @@ UpdatePlayer :: proc(e: ^Entity) {
 
     cameraBounds := GetCameraBounds()
     e.position.x = clamp(e.position.x, cameraBounds.left, cameraBounds.right)
-    e.position.x = clamp(e.position.y, cameraBounds.bot, cameraBounds.top)
+    e.position.y = clamp(e.position.y, cameraBounds.bot, cameraBounds.top)
 
 
     // Shooting
@@ -176,6 +175,23 @@ UpdatePlayer :: proc(e: ^Entity) {
         -35
     }
 
+    offsetsFocused := [?]v2 {
+        {0,     0.1},
+        {-0.05, 0},
+        { 0.05, 0},
+
+        {0.08, 0},
+
+        {-0.08, 0},
+    }
+
+    anglesFocused := [?]Deg {
+        0, 0, 0,
+        0,
+
+        0
+    }
+
     #assert(len(offsets) == len(angles))
     
     e.shootTimer -= rl.GetFrameTime()
@@ -183,16 +199,19 @@ UpdatePlayer :: proc(e: ^Entity) {
     if shoot && e.shootTimer < 0 {
         e.shootTimer = 0.05
 
+        off := focus ? offsetsFocused : offsets
+        ang := focus ? anglesFocused : angles
+
         for _, i in offsets {
             bullet, handle := ha.CreateElement(&g.entities)
 
             bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
             bullet.sprite = .Trace_07
 
-            bullet.position = e.position + offsets[i]
+            bullet.position = e.position + off[i]
             bullet.speed = 50
 
-            bullet.rotation = 90 + angles[i]
+            bullet.rotation = 90 + ang[i]
             bullet.spriteRot = -90
 
             bullet.size = 1

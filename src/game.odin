@@ -27,6 +27,8 @@ GameMemory :: struct {
 
     entities: ha.HandleArray(Entity, EntityHandle, 1024),
 
+    playerHandle: EntityHandle,
+
     score: int,
 
     pp: PostProcess,
@@ -58,6 +60,8 @@ Update :: proc() {
     if rl.IsKeyPressed(.R) {
         ResetGame()
     }
+
+    SpawnCircleOrSomethinIDunno()
 
     if Panel("text") {
         UILabel("Stuff")
@@ -174,7 +178,7 @@ game_init :: proc() {
     InitUI(&uiCtx)
     uiCtx.textStyle.font = GetFont(g.assetStorage, .Goldman_Regular)
 
-    CreatePlayer()
+    g.playerHandle = CreatePlayer()
 
     game_hot_reloaded(g)
 }
