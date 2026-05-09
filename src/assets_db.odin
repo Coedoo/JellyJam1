@@ -15,6 +15,7 @@ Unknown_Asset :: enum {
 }
 
 Image_Asset :: enum {
+	Trace_07,
 }
 
 Gif_Asset :: enum {
@@ -40,6 +41,11 @@ Unknown_Assets := [Unknown_Asset]Asset_Info{
 }
 
 Image_Assets := [Image_Asset]Asset_Info{
+	.Trace_07 = {
+		path       = "assets/trace_07.png",
+		file_name  = "trace_07.png",
+		size_bytes = 33145,
+	},
 }
 
 Gif_Assets := [Gif_Asset]Asset_Info{

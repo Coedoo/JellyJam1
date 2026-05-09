@@ -91,14 +91,11 @@ Draw :: proc() {
         }
 
 
-    // rl.DrawRectangleLinesEx(RectToRLRect(SAFE_ZONE_EXTENDS), 0.01, rl.BLUE)
-
     rl.EndMode3D()
     PPEndDrawing(g.pp)
 
     // PP Goes here
     BloomUse(&g.pp, g.bloom)
-
 
     PPFinalize(g.pp)
 
@@ -176,6 +173,8 @@ game_init :: proc() {
 
     InitUI(&uiCtx)
     uiCtx.textStyle.font = GetFont(g.assetStorage, .Goldman_Regular)
+
+    CreatePlayer()
 
     game_hot_reloaded(g)
 }
