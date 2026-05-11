@@ -8,6 +8,8 @@ import "core:math"
 import rl "vendor:raylib"
 import ha "handle_array"
 
+import "core:math/ease"
+
 EntityHandle :: distinct ha.Handle
 
 EntityFlag :: enum {
@@ -23,10 +25,16 @@ EntityFlag :: enum {
     DestroyOutsideCamera,
 }
 
-CollisionType :: enum {
+// CollisionType :: enum {
+//     None,
+//     AABB,
+//     Circle,
+// }
+
+Owner :: enum {
     None,
-    AABB,
-    Circle,
+    Player,
+    Enemy,
 }
 
 EntityFlags :: distinct bit_set[EntityFlag]
@@ -56,6 +64,8 @@ Entity :: struct {
     //
     hp: int,
     toDestroy: bool,
+
+    owner: Owner,
 
     collisionSize: v2,
 
@@ -88,49 +98,26 @@ GetCameraBounds :: proc() -> Rect{
     }
 }
 
-UpdateEntity :: proc(e: ^Entity) {
-    frameTime := rl.GetFrameTime()
-    e.lifeTime += frameTime
+ResetPlayer :: proc() {
+    player, ok := ha.GetElementPtr(&g.entities, g.playerHandle)
+    if ok {
+        player.lifeTime = 0
 
-
-    if .SpriteAnimation in e.flags {
-        sheet := GetGif(g.assetStorage, e.gif)
-        frames := sheet.rows
-
-        frame := cast(int) math.floor(e.lifeTime / 0.03)
-        e.frame = frame % frames
-    }
-
-    if .BulletMovement in e.flags {
-        e.speed += e.acceleration * frameTime
-        e.rotation += e.angularSpeed * Deg(frameTime)
-
-        rads := f32(e.rotation) * math.RAD_PER_DEG
-        forward := v2{math.cos(rads), math.sin(rads)}
-        e.position += e.speed * forward * frameTime
-    }
-
-    if .DestroyOutsideCamera in e.flags {
-        cameraBounds := GetCameraBounds()
-        bounds := GetEntityBounds(e)
-         // wasInsideCamera := e->isInsideCamera
-
-        if bounds.left  < cameraBounds.left  ||
-           bounds.right > cameraBounds.right ||
-           bounds.bot   < cameraBounds.bot   ||
-           bounds.top   > cameraBounds.top
-        {
-            e.toDestroy = true
-        }
-    }
-
-    switch controller in  e.controller {
-    case EntityControllerPlayer:
-        UpdatePlayer(e)
+        g.noDamageTimer = 3
     }
 }
 
 UpdatePlayer :: proc(e: ^Entity) {
+    cameraBounds := GetCameraBounds()
+
+    // Spawn animation
+    animTime : f32 = 0.8
+    if(e.lifeTime < animTime) {
+        p := ease.sine_out(e.lifeTime / animTime)
+        e.position = linalg.lerp(v2{0, cameraBounds.bot}, v2{0, -1}, p)
+        return
+    }
+
     // movement
     input: v2
     if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
@@ -152,7 +139,6 @@ UpdatePlayer :: proc(e: ^Entity) {
     input = linalg.normalize0(input)
     e.position += input * rl.GetFrameTime() * speed
 
-    cameraBounds := GetCameraBounds()
     e.position.x = clamp(e.position.x, cameraBounds.left, cameraBounds.right)
     e.position.y = clamp(e.position.y, cameraBounds.bot, cameraBounds.top)
 
@@ -193,7 +179,7 @@ UpdatePlayer :: proc(e: ^Entity) {
     }
 
     #assert(len(offsets) == len(angles))
-    
+
     e.shootTimer -= rl.GetFrameTime()
     shoot := rl.IsKeyDown(.Z)
     if shoot && e.shootTimer < 0 {
@@ -207,6 +193,8 @@ UpdatePlayer :: proc(e: ^Entity) {
 
             bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
             bullet.sprite = .Trace_07
+
+            bullet.owner = .Player
 
             bullet.position = e.position + off[i]
             bullet.speed = 50
@@ -236,10 +224,24 @@ DrawEntity :: proc(e: ^Entity) {
         DrawAnimation(anim, e.position, e.size, i32(e.frame), rotation = e.rotation)
     }
 
-
-    if .DrawRect in e.flags {
-        rl.DrawRectangleV(e.position, e.size, rl.RED)
+    if e.handle == g.playerHandle {
+        size :: v2{.5, .8}
+        tint := rl.RED
+        if e.handle == g.playerHandle && g.noDamageTimer > 0 {
+            tint = rl.ColorLerp(tint, {100, 100, 100, 255}, math.sin(g.noDamageTimer * 5) * 2 + 1)
+        }
+        rl.DrawRectangleV(e.position - size / 2, size, tint)
     }
+
+
+    // if .DrawRect in e.flags {
+    //     tint := rl.RED
+    //     if e.handle == g.playerHandle && g.noDamageTimer > 0 {
+    //         tint = rl.ColorLerp(tint, {100, 100, 100, 255}, math.sin(g.noDamageTimer * 5) * 2 + 1)
+    //     }
+
+    //     rl.DrawRectangleV(e.position - e.size / 2, e.size, tint)
+    // }
 }
 
 CreatePlayer :: proc() -> EntityHandle {
@@ -250,7 +252,7 @@ CreatePlayer :: proc() -> EntityHandle {
         },
         // sprite = .Round_Cat,
         size = 1,
-        controller = EntityControllerPlayer{}
+        controller = EntityControllerPlayer{},
     }
 
     return ha.AppendElement(&g.entities, player)
@@ -269,4 +271,29 @@ GetEntityBounds :: proc(e: ^Entity) -> Rect {
     ret.top   = e.position.y + e.collisionSize.y / 2;
 
     return ret;
+}
+
+DestroyAllBullets :: proc() {
+    iter := ha.MakeIterReverse(&g.entities)
+    for e in ha.Iterate(&iter) {
+        if .BulletMovement in e.flags {
+            DestroyEntity(e)
+        }
+    }
+}
+
+
+CreateEnemy :: proc() -> EntityHandle {
+    enemy := Entity {
+        flags = {
+            .DrawRect, .Collision
+        },
+        size = 2,
+        collisionSize = 0.8,
+        position  = {0, 7},
+
+        hp = PatternHP[g.currentPattern],
+    }
+
+    return ha.AppendElement(&g.entities, enemy)
 }

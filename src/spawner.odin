@@ -95,9 +95,12 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
         bullet.acceleration = spawner.acceleration
         bullet.angularSpeed = spawner.angularSpeed
 
+        bullet.owner = .Enemy
+
         bullet.rotation = GetAngle(spawner.angle, pos)
 
         bullet.size = .4
+        bullet.collisionSize = bullet.size / 2 - 0.1
 
     case .Stack: // Spawn n bullets with stuff as above but
         for i in 0..<spawner.count {
@@ -109,9 +112,15 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
             bullet.position = pos
             bullet.speed = math.lerp(spawner.minSpeed, spawner.maxSpeed, f32(i) / f32(spawner.count))
 
+            bullet.acceleration = spawner.acceleration
+            bullet.angularSpeed = spawner.angularSpeed
+
+            bullet.owner = .Enemy
+
             bullet.rotation = GetAngle(spawner.angle, pos)
 
-            bullet.size = 1
+            bullet.size = .4
+            bullet.collisionSize = bullet.size / 2 - 0.1
         }
 
     case .Circle:
@@ -149,43 +158,6 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
                 
                 Spawn(pos + {x, y}, c)
             }
-        }
-    }
-}
-
-
-SpawnCircleOrSomethinIDunno :: proc() {
-    spawn := Spawner {
-        type = .Circle,
-        count = 12,
-        angle = AngleTypeFixed { 0 },
-        radius = 0,
-
-        children = {
-            {
-                type = .Bullet,
-                speed = 0,
-                acceleration = 0.8,
-                // angularSpeed = 30,
-                angle = AngleTypeParent{},
-            },
-        }
-    }
-
-    @static timer: f32
-    @static step: int
-
-    timer -= rl.GetFrameTime()
-    if timer < 0 {
-        Spawn({f32(step) *  0.4, 5}, spawn)
-        Spawn({f32(step) * -0.4, 5}, spawn)
-
-        step += 1
-        timer = .4
-
-        if step > 10 {
-            step = 0
-            timer = 4
         }
     }
 }

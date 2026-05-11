@@ -81,14 +81,14 @@ IsHandleValid :: proc(arr: HandleArray($T, $H, $N), handle: H) -> bool {
     return slot.elemIndex != 0 && slot.gen == handle.gen
 }
 
-GetElementPtr :: proc(arr: HandleArray($T, $H, $N), handle: H) -> (element: ^T, ok: bool) {
-    arr := arr
+GetElementPtr :: proc(arr: ^HandleArray($T, $H, $N), handle: H) -> (element: ^T, ok: bool) {
+    assert(int(handle.slotIndex) < len(arr.slots))
 
-    if IsHandleValid(arr, handle) == false {
+    slot := arr.slots[handle.slotIndex]
+    if slot.elemIndex == 0 || slot.gen != handle.gen {
         return nil, false
     }
 
-    slot := arr.slots[handle.slotIndex]
     return &arr.elements[slot.elemIndex], true
 }
 

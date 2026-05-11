@@ -16,6 +16,8 @@ Unknown_Asset :: enum {
 
 Image_Asset :: enum {
 	Circle_05,
+	Maple,
+	Scorch_01,
 	Trace_07,
 }
 
@@ -46,6 +48,16 @@ Image_Assets := [Image_Asset]Asset_Info{
 		path       = "assets/circle_05.png",
 		file_name  = "circle_05.png",
 		size_bytes = 65336,
+	},
+	.Maple = {
+		path       = "assets/maple.png",
+		file_name  = "maple.png",
+		size_bytes = 11277,
+	},
+	.Scorch_01 = {
+		path       = "assets/scorch_01.png",
+		file_name  = "scorch_01.png",
+		size_bytes = 60598,
 	},
 	.Trace_07 = {
 		path       = "assets/trace_07.png",

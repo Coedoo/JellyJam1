@@ -2,10 +2,13 @@ package game
 
 import "core:fmt"
 import "core:math/linalg"
+import "core:math"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 import mu "vendor:microui"
 import ha "handle_array"
+
+
 
 v2  :: [2]f32
 iv2 :: [2]int
@@ -13,31 +16,66 @@ iv2 :: [2]int
 Rad :: distinct f32
 Deg :: distinct f32
 
-PIXEL_WINDOW_HEIGHT :: 20
+Stage :: enum {
+    Menu,
+    Game,
+    Victory,
+    Defeat,
+}
 
-LEVEL_WIDTH :: f32(5)
-LEVEL_HEIGHT :: f32(6)
-
+MenuStage :: enum {
+    Main,
+    Settings,
+    Credits,
+}
 
 GameMemory :: struct {
     assetStorage: AssetStorage,
     mui: ^mu.Context,
 
+    stage: Stage,
+    menuStage: MenuStage,
+
     camera: rl.Camera,
 
     entities: ha.HandleArray(Entity, EntityHandle, 1024),
 
+    playerHP: int,
+    noDamageTimer: f32,
+
     playerHandle: EntityHandle,
+    enemyHandle: EntityHandle,
 
     score: int,
 
     pp: PostProcess,
     bloom: BloomEffect,
 
+    currentPattern: Pattern,
+    patternState: PatternState,
+
     run: bool,
+
+    masterVolume: f32,
+    sfxVolume: f32,
+    musicVolume: f32,
+
+    bossParticles: ParticleSystem,
+    transitionParticles: ParticleSystem,
+
+    // Debug
+    debugDrawCollision: bool
 }
 
 g: ^GameMemory
+
+PatternHP := [Pattern]int {
+    .Pattern1 = 100,
+    .Pattern2 = 200,
+    .Pattern3 = 250,
+
+    .MoveAndAimedSpread = 200,
+}
 
 
 Update :: proc() {
@@ -45,15 +83,90 @@ Update :: proc() {
         g.run = false
     }
 
-    iter := ha.MakeIter(&g.entities)
-    for e in ha.Iterate(&iter) {
-        UpdateEntity(e)
+    if g.stage == .Menu {
+        Menu()
     }
 
-    iter = ha.MakeIterReverse(&g.entities)
-    for e in ha.Iterate(&iter) {
-        if e.toDestroy {
-            DestroyEntity(e)
+    frameTime := rl.GetFrameTime()
+    g.noDamageTimer -= frameTime
+
+    if g.stage == .Game {
+        UpdatePattern(g.currentPattern, &g.patternState)
+        
+        b := ha.GetElement(g.entities, g.enemyHandle)
+        g.bossParticles.position = b.position
+
+        for i in 1..<len(g.entities.elements) {
+            e := &g.entities.elements[i]
+
+            e.lifeTime += frameTime
+
+            if .SpriteAnimation in e.flags {
+                sheet := GetGif(g.assetStorage, e.gif)
+                frames := sheet.rows
+
+                frame := cast(int) math.floor(e.lifeTime / 0.03)
+                e.frame = frame % frames
+            }
+
+            if .BulletMovement in e.flags {
+                e.speed += e.acceleration * frameTime
+                e.rotation += e.angularSpeed * Deg(frameTime)
+
+                rads := f32(e.rotation) * math.RAD_PER_DEG
+                forward := v2{math.cos(rads), math.sin(rads)}
+                e.position += e.speed * forward * frameTime
+
+                if e.owner == .Player {
+                    boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+                    if ok && rl.CheckCollisionCircles(e.position, e.collisionSize.x, boss.position, boss.collisionSize.x) {
+                        e.toDestroy = true
+
+                        boss.hp -= 1
+
+                        if boss.hp <= 0 {
+                            ChangePatternByStep(1)
+                            StartTransition(&g.patternState)
+                        }
+                    }
+                }
+
+                if e.owner == .Enemy {
+                    player := ha.GetElement(g.entities, g.playerHandle)
+
+                    if rl.CheckCollisionCircles(e.position, e.collisionSize.x, player.position, player.collisionSize.x) {
+                        e.toDestroy = true
+
+                        g.playerHP -= 1
+
+                        DestroyAllBullets()
+                        ResetPlayer()
+
+                        if g.playerHP <= 0 {
+                            // Game failed
+                        }
+                    }
+                }
+            }
+
+            if .DestroyOutsideCamera in e.flags {
+                cameraBounds := GetCameraBounds()
+                bounds := GetEntityBounds(e)
+                 // wasInsideCamera := e->isInsideCamera
+
+                if bounds.left  < cameraBounds.left  ||
+                   bounds.right > cameraBounds.right ||
+                   bounds.bot   < cameraBounds.bot   ||
+                   bounds.top   > cameraBounds.top
+                {
+                    e.toDestroy = true
+                }
+            }
+
+            switch controller in  e.controller {
+            case EntityControllerPlayer:
+                UpdatePlayer(e)
+            }
         }
     }
 
@@ -61,11 +174,35 @@ Update :: proc() {
         ResetGame()
     }
 
-    SpawnCircleOrSomethinIDunno()
+    // UI!!!!!!!!!!!!
+
+    // boss hp
+    boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+    if ok {
+        UISpacer(3)
+        hpNode := AddNode("bosshp", {.DrawBackground})
+        hpNode.preferredSize[.X] = {.ParentPercent, f32(boss.hp) / f32(PatternHP[g.currentPattern]), 1}
+        hpNode.preferredSize[.Y] = {.Fixed, 10, 1}
+        hpNode.bgColor = {1, 1, 1, 1}
+        hpNode.origin = {0, 0}
+    }
 
     if Panel("text") {
-        UILabel("Stuff")
-        UILabel("Score:", g.score)
+        UILabel("Lives: ", g.playerHP)
+    }
+
+    if Panel("patterns", Aligment{.Top, .Left}) {
+        UILabel("Current:", g.currentPattern)
+
+        if LayoutBlock("buttons", .X) {
+            if UIButton("prev") {
+                ChangePatternByStep(-1)
+            }
+
+            if UIButton("next") {
+                ChangePatternByStep(1)
+            }
+        }
     }
 
     // if Panel("Debug") {
@@ -76,24 +213,124 @@ Update :: proc() {
     // }
     // test_window(g.mui)
 
+    iter := ha.MakeIterReverse(&g.entities)
+    for e in ha.Iterate(&iter) {
+        if e.toDestroy {
+            DestroyEntity(e)
+        }
+    }
+}
+
+Menu :: proc() {
+    style := uiCtx.textStyle
+    style.fontSize = 130
+    style.textColor = {0, 0.5, 1, 1}
+
+    // NextNodeStyle(style)
+    // NextNodePosition({60, 100}, origin = {0, 0.5})
+    // UILabel("TITTLE TBD")
+
+    style = uiCtx.panelStyle
+    style.bgColor = {0, 0, 0, 0.7}
+
+    NextNodeStyle(style)
+    NextNodePosition({70, 300}, origin = {0, 0})
+    if Panel("Menu", aligment = Aligment{.Middle, .Left}) {
+
+        style = uiCtx.buttonStyle
+        style.fontSize = 50
+        style.bgColor     = {0, 0, 0, 0.3}
+        style.activeColor = {0, 0.05, 0.5, 0.7}
+        style.hotColor    = {0, 0, 0.3, 0.7}
+        PushStyle(style)
+
+        switch g.menuStage {
+        case .Main:
+
+            if UIButton("Play") {
+                // g.menuStage = .LevelSelect
+                StartGame()
+            }
+            if UIButton("Settings") do g.menuStage = .Settings
+            if UIButton("Credits")  do g.menuStage = .Credits
+
+            UISpacer(20)
+            if UIButton("Quit") {}
+
+
+        case .Settings:
+            @static test: f32
+            UISliderLabel("Main Audio", &g.masterVolume, 0, 1)
+            UISliderLabel("Sounds",     &g.sfxVolume,    0, 1)
+
+            if UISliderLabel("Music", &g.musicVolume, 0, 1) {
+                // SetVolume(g.luminary, g.musicVolume)
+            }
+
+            UISpacer(20)
+            if UIButton("Back") do g.menuStage = .Main
+
+        case .Credits:
+            UISpacer(20)
+            if UIButton("Back") do g.menuStage = .Main
+        }
+        PopStyle()
+    }
+}
+
+StartGame :: proc() {
+    g.stage = .Game
+
+    g.playerHandle = CreatePlayer()
+    g.enemyHandle = CreateEnemy()
+    g.playerHP = 3
+    ResetPlayer()
+}
+
+
+ChangePatternByStep :: proc(step: int) {
+    i := (cast(int) g.currentPattern) + step
+    i = i %% len(Pattern)
+
+    g.currentPattern = cast(Pattern) i
+
+    boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+    boss.hp = PatternHP[g.currentPattern]
+
+    g.patternState = {}
+    DestroyAllBullets()
 }
 
 Draw :: proc() {
     rl.BeginDrawing()
 
     PPBeginDrawing(g.pp)
-    rl.ClearBackground(rl.DARKGRAY)
+    rl.ClearBackground({0, 5, 10, 255})
 
     DrawGrid()
 
     rl.BeginMode3D(g.camera)
         rlgl.DisableBackfaceCulling()
+        rlgl.DisableDepthTest()
 
+        if g.stage == .Game {
+            UpdateAndDrawParticleSystem(&g.bossParticles)
+            UpdateAndDrawParticleSystem(&g.transitionParticles)
+        }
+        
         iter := ha.MakeIter(&g.entities)
         for e in ha.Iterate(&iter) {
             DrawEntity(e)
         }
 
+        iter = ha.MakeIter(&g.entities)
+        for e in ha.Iterate(&iter) {
+            if g.debugDrawCollision {
+                if .Collision in e.flags {
+                    rl.DrawCircleLinesV(e.position, e.collisionSize.x, rl.BLUE)
+                }
+            }
+        }
 
     rl.EndMode3D()
     PPEndDrawing(g.pp)
@@ -165,7 +402,7 @@ game_init :: proc() {
         up = {0, 1, 0},
         position = {0, 4, 1},
         target = {0, 4, 0},
-        fovy = 12,
+        fovy = 15,
         projection = .ORTHOGRAPHIC
     }
 
@@ -178,9 +415,38 @@ game_init :: proc() {
     InitUI(&uiCtx)
     uiCtx.textStyle.font = GetFont(g.assetStorage, .Goldman_Regular)
 
-    g.playerHandle = CreatePlayer()
+    g.currentPattern = .MoveAndAimedSpread
 
     game_hot_reloaded(g)
+
+    g.debugDrawCollision = true
+
+    g.bossParticles = DefaultParticleSystem
+    g.bossParticles.texture = GetTexture(g.assetStorage, .Scorch_01)
+    g.bossParticles.emitRate = 40
+    g.bossParticles.startSize = RandomFloat{2, 4}
+    g.bossParticles.startRotation = RandomFloat{0, 360}
+    g.bossParticles.startRotationSpeed = RandomFloat{-20, 20}
+    g.bossParticles.lifetime = RandomFloat{0.6, 1}
+    g.bossParticles.color = ColorOverLifetime{{1, 1, 1, 1}, {1, 1, 1, 0}, .Exponential_Out}
+
+    InitParticleSystem(&g.bossParticles)
+
+    g.transitionParticles = DefaultParticleSystem
+    g.transitionParticles.texture = GetTexture(g.assetStorage, .Maple)
+    g.transitionParticles.emitRate = 0
+    g.transitionParticles.startSpeed = RandomFloat{1, 8}
+    g.transitionParticles.startSize = RandomFloat{.5, 2}
+    g.transitionParticles.startRotation = RandomFloat{0, 360}
+    g.transitionParticles.startRotationSpeed = RandomFloat{-20, 20}
+    g.transitionParticles.lifetime = RandomFloat{1, 1.5}
+    g.transitionParticles.color = ColorOverLifetime{{1, 1, 1, 1}, {1, 1, 1, 0}, .Exponential_Out}
+
+    InitParticleSystem(&g.transitionParticles)
+
+    // SpawnParticles(&g.transitionParticles, 30)
+
+    StartGame()
 }
 
 @(export)
@@ -199,6 +465,7 @@ game_should_run :: proc() -> bool {
 game_shutdown :: proc() {
     DestroyAssetsMemory(&g.assetStorage)
     free(g.mui)
+    DestroyParticlesystem(&g.bossParticles)
     free(g)
     delete(uiCtx.transientArena.data)
 }

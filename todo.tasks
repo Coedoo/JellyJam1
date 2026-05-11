@@ -1,0 +1,22 @@
+ ✔ ENEMY @done (26-05-11 11:09)
+ ✔ Collision @done (26-05-10 21:40)
+ ✔ Enemy health @done (26-05-11 09:53)
+ ✔ Enenmy health UI @done (26-05-11 09:53)
+ ✔ pattern switches @done (26-05-11 10:22)
+ ✔ enemy movement during patterns @done (26-05-11 11:48)
+ ☐ BOMBS
+
+ ☐ AUDIO:
+   ☐ Shooting
+   ☐ hit
+   ☐ bomb
+   ☐ boss destroyed
+   ☐ OST
+
+ ☐ Main Menu
+   ☐ Settings
+   ☐ Credits
+
+ ☐ Better pattern transitions
+   ✔ Boss movement to start position @done (26-05-11 21:47)
+   ☐ health bar animation
