@@ -38,13 +38,13 @@ DrawSpriteSize :: proc(tex: rl.Texture, pos: v2, color: rl.Color, size: f32, rot
         rlgl.Normal3f(0.0, 0.0, 1.0);
         rlgl.Color4ub(color.r, color.g, color.b, color.a);
 
-        rlgl.TexCoord2f(1, 1)
-        rlgl.Vertex2f(a.x, a.y)
         rlgl.TexCoord2f(0, 1)
+        rlgl.Vertex2f(a.x, a.y)
+        rlgl.TexCoord2f(1, 1)
         rlgl.Vertex2f(b.x, b.y)
-        rlgl.TexCoord2f(0, 0)
-        rlgl.Vertex2f(c.x, c.y)
         rlgl.TexCoord2f(1, 0)
+        rlgl.Vertex2f(c.x, c.y)
+        rlgl.TexCoord2f(0, 0)
         rlgl.Vertex2f(d.x, d.y)
 
     rlgl.End();
