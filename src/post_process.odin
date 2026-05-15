@@ -10,6 +10,44 @@ PostProcess :: struct {
     src: rl.RenderTexture2D,
 }
 
+when ODIN_OS == .JS {
+    PPVertexShader :: `#version 300 es
+        precision mediump float;
+
+        in vec3 vertexPosition;
+        in vec2 vertexTexCoord;
+        in vec4 vertexColor;
+        out vec2 fragTexCoord;
+        out vec4 fragColor;
+        uniform mat4 mvp;
+
+        void main()
+        {
+            fragTexCoord = vertexTexCoord;
+            fragColor = vertexColor;
+            gl_Position = mvp*vec4(vertexPosition, 1.0);
+        }
+    `
+}
+else {
+    PPVertexShader :: `#version 330
+
+        in vec3 vertexPosition;
+        in vec2 vertexTexCoord;
+        in vec4 vertexColor;
+        out vec2 fragTexCoord;
+        out vec4 fragColor;
+        uniform mat4 mvp;
+
+        void main()
+        {
+            fragTexCoord = vertexTexCoord;
+            fragColor = vertexColor;
+            gl_Position = mvp*vec4(vertexPosition, 1.0);
+        }
+    `
+}
+
 PPInit :: proc(width, height: i32) -> PostProcess {
     pp := PostProcess{}
     pp.width = width
@@ -89,95 +127,195 @@ BlitShader :: proc(src, dest: rl.RenderTexture2D, shader: rl.Shader, clear := tr
 /////////////
 // Bloom
 
-BloomTresholdShader :: `
-#version 330
+when ODIN_OS == .JS {
+    BloomTresholdShader :: `#version 300 es
+    precision mediump float;
 
-in vec2 fragTexCoord;
-out vec4 finalColor;
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
 
-uniform sampler2D texture0;
-uniform vec4 treshold; // [t, -t+tk, 2tk, 1/(4tk + 0.000001)] - t = treshold, k = knee
+    uniform sampler2D texture0;
+    uniform vec4 treshold; // [t, -t+tk, 2tk, 1/(4tk + 0.000001)] - t = treshold, k = knee
 
-void main() {
-    vec4 color = texture(texture0, fragTexCoord);
-    float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    void main() {
+        vec4 color = texture(texture0, fragTexCoord);
+        float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-    // float soft = brightness + treshold.y;
-    // soft = clamp(soft, 0.0, treshold.z);
-    // soft = soft * soft * treshold.w;
+        // float soft = brightness + treshold.y;
+        // soft = clamp(soft, 0.0, treshold.z);
+        // soft = soft * soft * treshold.w;
 
-    // float contribution = max(soft, brightness - treshold.x) / max(brightness, 0.000001);
-    
-    float contribution = max(0, brightness - treshold.x) / max(brightness, 0.000001);
+        // float contribution = max(soft, brightness - treshold.x) / max(brightness, 0.000001);
+        
+        float contribution = max(0.0f, brightness - treshold.x) / max(brightness, 0.000001f);
 
-    finalColor = color * contribution;
-}`
+        finalColor = color * contribution;
+    }`
+}
+else {
+    BloomTresholdShader :: `
+    #version 330
 
-BloomBlurShader :: `
-#version 330
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
 
-in vec2 fragTexCoord;
-out vec4 finalColor;
+    uniform sampler2D texture0;
+    uniform vec4 treshold; // [t, -t+tk, 2tk, 1/(4tk + 0.000001)] - t = treshold, k = knee
 
-uniform sampler2D texture0;
-uniform float delta;
+    void main() {
+        vec4 color = texture(texture0, fragTexCoord);
+        float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-vec3 SampleBox (vec2 uv) {
-    vec2 texelSize = 1.0 / textureSize(texture0, 0);
-    vec4 o = texelSize.xyxy * vec2(-delta, delta).xxyy;
-    vec3 s =
-        texture(texture0, uv + o.xy).rgb + texture(texture0, uv + o.zy).rgb +
-        texture(texture0, uv + o.xw).rgb + texture(texture0, uv + o.zw).rgb;
-    return s * 0.25f;
+        // float soft = brightness + treshold.y;
+        // soft = clamp(soft, 0.0, treshold.z);
+        // soft = soft * soft * treshold.w;
+
+        // float contribution = max(soft, brightness - treshold.x) / max(brightness, 0.000001);
+        
+        float contribution = max(0, brightness - treshold.x) / max(brightness, 0.000001);
+
+        finalColor = color * contribution;
+    }`
 }
 
-void main() {
-    finalColor = vec4(SampleBox(fragTexCoord), 1);
-}`
+when ODIN_OS == .JS {
+    BloomBlurShader :: `#version 300 es
+    precision mediump float;
 
-BloomBlitShader :: `
-#version 330
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
 
-in vec2 fragTexCoord;
-out vec4 finalColor;
+    uniform sampler2D texture0;
+    uniform float delta;
 
-uniform sampler2D texture0;
-uniform sampler2D bloom;
-uniform float bloom_intensity;
+    vec3 SampleBox (vec2 uv) {
+        vec2 texelSize = vec2(1.0, 1.0) / vec2(textureSize(texture0, 0));
+        vec4 o = texelSize.xyxy * vec2(-delta, delta).xxyy;
+        vec3 s =
+            texture(texture0, uv + o.xy).rgb + texture(texture0, uv + o.zy).rgb +
+            texture(texture0, uv + o.xw).rgb + texture(texture0, uv + o.zw).rgb;
+        return s * 0.25f;
+    }
 
-vec3 Tonemap_ACES(vec3 x)
-{
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return (x * (a * x + b)) / (x * (c * x + d) + e);
+    void main() {
+        finalColor = vec4(SampleBox(fragTexCoord), 1);
+    }`
+}
+else {
+    BloomBlurShader :: `
+    #version 330
+
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
+
+    uniform sampler2D texture0;
+    uniform float delta;
+
+    vec3 SampleBox (vec2 uv) {
+        vec2 texelSize = 1.0 / textureSize(texture0, 0);
+        vec4 o = texelSize.xyxy * vec2(-delta, delta).xxyy;
+        vec3 s =
+            texture(texture0, uv + o.xy).rgb + texture(texture0, uv + o.zy).rgb +
+            texture(texture0, uv + o.xw).rgb + texture(texture0, uv + o.zw).rgb;
+        return s * 0.25f;
+    }
+
+    void main() {
+        finalColor = vec4(SampleBox(fragTexCoord), 1);
+    }`
 }
 
-void main() {
-    vec4 sceneColor = texture(texture0, fragTexCoord);
-    vec4 bloomColor = texture(bloom, fragTexCoord);
+when ODIN_OS == .JS {
+    BloomBlitShader :: `#version 300 es
+    precision mediump float;
 
-    // finalColor = vec4(Tonemap_ACES(sceneColor.rgb + bloomColor.rgb * bloom_intensity), 1);
-    finalColor = sceneColor + vec4(Tonemap_ACES(bloomColor.rgb * bloom_intensity), 1);
-    // finalColor = sceneColor + bloomColor * bloom_intensity;
-}`
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
 
-BloomBlitShaderHACK :: `
-#version 330
+    uniform sampler2D texture0;
+    uniform sampler2D bloom;
+    uniform float bloom_intensity;
 
-in vec2 fragTexCoord;
-out vec4 finalColor;
+    vec3 Tonemap_ACES(vec3 x)
+    {
+        const float a = 2.51;
+        const float b = 0.03;
+        const float c = 2.43;
+        const float d = 0.59;
+        const float e = 0.14;
+        return (x * (a * x + b)) / (x * (c * x + d) + e);
+    }
 
-uniform sampler2D texture0;
-uniform float bloom_intensity;
+    void main() {
+        vec4 sceneColor = texture(texture0, fragTexCoord);
+        vec4 bloomColor = texture(bloom, fragTexCoord);
 
-void main() {
-    vec4 bloomColor = texture(texture0, fragTexCoord);
-    finalColor = bloomColor * bloom_intensity;
-}`
+        // finalColor = vec4(Tonemap_ACES(sceneColor.rgb + bloomColor.rgb * bloom_intensity), 1);
+        finalColor = sceneColor + vec4(Tonemap_ACES(bloomColor.rgb * bloom_intensity), 1);
+        // finalColor = sceneColor + bloomColor * bloom_intensity;
+    }`
+}
+else {
+    BloomBlitShader :: `
+    #version 330
 
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
+
+    uniform sampler2D texture0;
+    uniform sampler2D bloom;
+    uniform float bloom_intensity;
+
+    vec3 Tonemap_ACES(vec3 x)
+    {
+        const float a = 2.51;
+        const float b = 0.03;
+        const float c = 2.43;
+        const float d = 0.59;
+        const float e = 0.14;
+        return (x * (a * x + b)) / (x * (c * x + d) + e);
+    }
+
+    void main() {
+        vec4 sceneColor = texture(texture0, fragTexCoord);
+        vec4 bloomColor = texture(bloom, fragTexCoord);
+
+        // finalColor = vec4(Tonemap_ACES(sceneColor.rgb + bloomColor.rgb * bloom_intensity), 1);
+        finalColor = sceneColor + vec4(Tonemap_ACES(bloomColor.rgb * bloom_intensity), 1);
+        // finalColor = sceneColor + bloomColor * bloom_intensity;
+    }`
+}
+
+when ODIN_OS == .JS {
+    BloomBlitShaderHACK :: `#version 300 es
+    precision mediump float;
+
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
+
+    uniform sampler2D texture0;
+    uniform float bloom_intensity;
+
+    void main() {
+        vec4 bloomColor = texture(texture0, fragTexCoord);
+        finalColor = bloomColor * bloom_intensity;
+    }`
+}
+else {
+    BloomBlitShaderHACK :: `
+    #version 330
+
+    in vec2 fragTexCoord;
+    out vec4 finalColor;
+
+    uniform sampler2D texture0;
+    uniform float bloom_intensity;
+
+    void main() {
+        vec4 bloomColor = texture(texture0, fragTexCoord);
+        finalColor = bloomColor * bloom_intensity;
+    }`
+}
 
 
 BloomEffect :: struct {
@@ -197,13 +335,13 @@ BloomInit :: proc() -> BloomEffect {
     b := BloomEffect{}
 
     b.levels = 5
-    b.treshold = 0.6
-    b.intensity = 1.0
+    b.treshold = 0.4
+    b.intensity = 2.0
     b.knee = 0.5
 
-    b.tresholdShader = rl.LoadShaderFromMemory(nil, BloomTresholdShader)
-    b.blurShader = rl.LoadShaderFromMemory(nil, BloomBlurShader)
-    b.blitShader = rl.LoadShaderFromMemory(nil, BloomBlitShader)
+    b.tresholdShader = rl.LoadShaderFromMemory(PPVertexShader, BloomTresholdShader)
+    b.blurShader = rl.LoadShaderFromMemory(PPVertexShader, BloomBlurShader)
+    b.blitShader = rl.LoadShaderFromMemory(PPVertexShader, BloomBlitShader)
     // b.blitShader = rl.LoadShaderFromMemory(nil, BloomBlitShaderHACK)
 
     w := rl.GetScreenWidth()
