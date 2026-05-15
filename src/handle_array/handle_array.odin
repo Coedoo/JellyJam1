@@ -134,8 +134,11 @@ Clear :: proc(arr: ^HandleArray($T, $H, $N)) {
     // resize(&arr.slots, 0)
     for &s, i in arr.slots {
         s = {}
-    }
+    }   
+    // clear(&arr.slots)
     clear(&arr.elements)
+
+    append(&arr.elements, T{})
 }
 
 PoolLen :: proc(arr: HandleArray($T, $H, $N)) -> int {
