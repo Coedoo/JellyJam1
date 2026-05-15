@@ -68,6 +68,7 @@ Entity :: struct {
     gif: Gif_Asset,
     frame: int,
 
+    spriteTint: rl.Color,
     color: rl.Color,
 
     //
@@ -226,6 +227,7 @@ SpawnPlayerBullet :: proc(pos: v2, angle: Deg) {
 
     bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
     bullet.sprite = .Trace_07
+    bullet.spriteTint = rl.WHITE
 
     bullet.owner = .Player
 
@@ -242,10 +244,10 @@ DrawEntity :: proc(e: ^Entity) {
     if .DrawSprite in e.flags {
         tex := GetTexture(g.assetStorage, e.sprite)
         if e.size != 0 {
-            DrawSpriteSize(tex, e.position, rl.WHITE, e.size, rotation = e.rotation + e.spriteRot)
+            DrawSpriteSize(tex, e.position, e.spriteTint, e.size, rotation = e.rotation + e.spriteRot)
         }
         else {
-            DrawSprite(tex, e.position, rl.WHITE, rotation = e.rotation + e.spriteRot)
+            DrawSprite(tex, e.position, e.spriteTint, rotation = e.rotation + e.spriteRot)
         }
     }
 
@@ -289,6 +291,7 @@ CreatePlayer :: proc() -> EntityHandle {
             .Collision,
         },
         sprite = .Ship,
+        spriteTint = rl.WHITE,
         hp = 1,
         size = 1,
         collisionSize = 0.04,
@@ -394,6 +397,7 @@ CreateHelp :: proc() -> bool {
         },
         maxLifeTime = SHIELD_TIME,
         sprite = .Ship,
+        spriteTint = rl.WHITE,
         size = 1,
         controller = EntityControllerHelp{ HelpOffset[type] },
         color = rl.RED

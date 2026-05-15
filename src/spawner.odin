@@ -84,45 +84,51 @@ GetAngle :: proc(angle: AngleType, position: v2) -> Deg {
     return 0
 }
 
+SpawnEnemyBullet :: proc(pos: v2, sprite: Image_Asset, speed, acc: f32, rot, angSpeed: Deg, size: f32) {
+    bullet: Entity
+    bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
+    bullet.owner = .Enemy
+
+    bullet.sprite = sprite
+    bullet.spriteTint = rl.RED
+
+    bullet.position = pos
+    bullet.speed = speed
+    bullet.acceleration = acc
+    bullet.rotation = rot
+    bullet.angularSpeed = angSpeed
+
+    bullet.size = size
+    bullet.collisionSize = bullet.size / 2 - (0.37 * bullet.size)
+
+    ha.AppendElement(&g.entities, bullet)
+}
+
 Spawn :: proc(pos: v2, spawner: Spawner) {
     switch spawner.type {
     case .Bullet: // Spawn at pos, with speed, angle, angular velocity and acceleration
-        bullet, handle := ha.CreateElement(&g.entities)
-
-        bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
-        bullet.sprite = .Circle_05
-
-        bullet.position = pos
-        bullet.speed = spawner.speed
-        bullet.acceleration = spawner.acceleration
-        bullet.angularSpeed = spawner.angularSpeed
-
-        bullet.owner = .Enemy
-
-        bullet.rotation = GetAngle(spawner.angle, pos)
-
-        bullet.size = spawner.size
-        bullet.collisionSize = bullet.size / 2 - (0.37 * bullet.size)
+        SpawnEnemyBullet(
+            pos,
+            .Circle_05,
+            spawner.speed,
+            spawner.acceleration,
+            GetAngle(spawner.angle, pos),
+            spawner.angularSpeed,
+            spawner.size
+        )
 
     case .Stack: // Spawn n bullets with stuff as above but
         for i in 0..<spawner.count {
-            bullet, handle := ha.CreateElement(&g.entities)
 
-            bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
-            bullet.sprite = .Circle_05
-
-            bullet.position = pos
-            bullet.speed = math.lerp(spawner.minSpeed, spawner.maxSpeed, f32(i) / f32(spawner.count))
-
-            bullet.acceleration = spawner.acceleration
-            bullet.angularSpeed = spawner.angularSpeed
-
-            bullet.owner = .Enemy
-
-            bullet.rotation = GetAngle(spawner.angle, pos)
-
-            bullet.size = spawner.size
-            bullet.collisionSize = bullet.size / 2 - (0.37 * bullet.size)
+            SpawnEnemyBullet(
+                pos,
+                .Circle_05,
+                math.lerp(spawner.minSpeed, spawner.maxSpeed, f32(i) / f32(spawner.count)),
+                spawner.acceleration,
+                GetAngle(spawner.angle, pos),
+                spawner.angularSpeed,
+                spawner.size
+            )
         }
 
     case .Circle:
