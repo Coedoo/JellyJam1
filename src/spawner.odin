@@ -47,6 +47,8 @@ Spawner :: struct {
     acceleration: f32,
     angularSpeed: Deg,
 
+    size: f32,
+
     angle: AngleType,
 
     // circle
@@ -99,8 +101,8 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
 
         bullet.rotation = GetAngle(spawner.angle, pos)
 
-        bullet.size = .4
-        bullet.collisionSize = bullet.size / 2 - 0.1
+        bullet.size = spawner.size
+        bullet.collisionSize = bullet.size / 2 - (0.37 * bullet.size)
 
     case .Stack: // Spawn n bullets with stuff as above but
         for i in 0..<spawner.count {
@@ -119,8 +121,8 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
 
             bullet.rotation = GetAngle(spawner.angle, pos)
 
-            bullet.size = .4
-            bullet.collisionSize = bullet.size / 2 - 0.1
+            bullet.size = spawner.size
+            bullet.collisionSize = bullet.size / 2 - (0.37 * bullet.size)
         }
 
     case .Circle:

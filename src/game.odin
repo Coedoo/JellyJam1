@@ -40,8 +40,11 @@ GameMemory :: struct {
 
     entities: ha.HandleArray(Entity, EntityHandle, 1024),
 
-    playerHP: int,
+    helpCount: int,
     noDamageTimer: f32,
+
+    helpTimer: f32,
+    shieldHandle: EntityHandle,
 
     playerHandle: EntityHandle,
     enemyHandle: EntityHandle,
@@ -64,15 +67,19 @@ GameMemory :: struct {
     transitionParticles: ParticleSystem,
 
     // Debug
-    debugDrawCollision: bool
+    debugDrawCollision: bool,
+    debugGodMode: bool,
 }
 
 g: ^GameMemory
 
 PatternHP := [Pattern]int {
-    .Pattern1 = 100,
-    .Pattern2 = 200,
-    .Pattern3 = 250,
+    .SimpleAimedAndRandomMovent = 700,
+    .ClassicRosette = 1000,
+
+    .Pattern1 = 500,
+    .Pattern2 = 320,
+    .Pattern3 = 320,
 
     .MoveAndAimedSpread = 200,
 }
@@ -90,85 +97,123 @@ Update :: proc() {
     frameTime := rl.GetFrameTime()
     g.noDamageTimer -= frameTime
 
-    if g.stage == .Game {
+    if rl.IsKeyPressed(.C) {
+        if g.helpTimer <= 0 {
+            g.helpTimer = 4
+            g.shieldHandle = CreateShield()
+        }
+    }
+
+    if g.helpTimer > 0 {
+        g.helpTimer -= frameTime
+
+        if g.helpTimer < 0 {
+            DestroyEntityHandle(g.shieldHandle)
+        }
+    }
+
+    if g.stage != .Menu {
         UpdatePattern(g.currentPattern, &g.patternState)
-        
-        b := ha.GetElement(g.entities, g.enemyHandle)
-        g.bossParticles.position = b.position
+    }
 
-        for i in 1..<len(g.entities.elements) {
-            e := &g.entities.elements[i]
+    b := ha.GetElement(g.entities, g.enemyHandle)
+    g.bossParticles.position = b.position
 
-            e.lifeTime += frameTime
+    for i in 1..<len(g.entities.elements) {
+        e := &g.entities.elements[i]
 
-            if .SpriteAnimation in e.flags {
-                sheet := GetGif(g.assetStorage, e.gif)
-                frames := sheet.rows
+        e.lifeTime += frameTime
 
-                frame := cast(int) math.floor(e.lifeTime / 0.03)
-                e.frame = frame % frames
-            }
+        if .SpriteAnimation in e.flags {
+            sheet := GetGif(g.assetStorage, e.gif)
+            frames := sheet.rows
 
-            if .BulletMovement in e.flags {
-                e.speed += e.acceleration * frameTime
-                e.rotation += e.angularSpeed * Deg(frameTime)
+            frame := cast(int) math.floor(e.lifeTime / 0.03)
+            e.frame = frame % frames
+        }
 
-                rads := f32(e.rotation) * math.RAD_PER_DEG
-                forward := v2{math.cos(rads), math.sin(rads)}
-                e.position += e.speed * forward * frameTime
+        if .BulletMovement in e.flags {
+            e.speed += e.acceleration * frameTime
+            e.rotation += e.angularSpeed * Deg(frameTime)
 
-                if e.owner == .Player {
-                    boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
-                    if ok && rl.CheckCollisionCircles(e.position, e.collisionSize.x, boss.position, boss.collisionSize.x) {
-                        e.toDestroy = true
+            rads := f32(e.rotation) * math.RAD_PER_DEG
+            forward := v2{math.cos(rads), math.sin(rads)}
+            e.position += e.speed * forward * frameTime
 
-                        boss.hp -= 1
+            if e.owner == .Player {
+                boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+                if ok && rl.CheckCollisionCircles(e.position, e.collisionSize.x, boss.position, boss.collisionSize.x) {
+                    e.toDestroy = true
 
-                        if boss.hp <= 0 {
+                    boss.hp -= 1
+
+                    if boss.hp <= 0 {
+                        if IsLastPatter(g.currentPattern) {
+                            DestroyAllBullets()
+                            DestroyEntityHandle(g.enemyHandle)
+
+                            g.stage = .Victory
+                        }
+                        else {
                             ChangePatternByStep(1)
                             StartTransition(&g.patternState)
                         }
                     }
                 }
+            }
 
-                if e.owner == .Enemy {
-                    player := ha.GetElement(g.entities, g.playerHandle)
+            if e.owner == .Enemy {
+                player, ok := ha.GetElementPtr(&g.entities, g.playerHandle)
 
-                    if rl.CheckCollisionCircles(e.position, e.collisionSize.x, player.position, player.collisionSize.x) {
+                if ok && rl.CheckCollisionCircles(e.position, e.collisionSize.x, player.position, player.collisionSize.x) {
+                    if player.hp > 0 && g.debugGodMode == false {
                         e.toDestroy = true
 
-                        g.playerHP -= 1
+                        player.hp -= 1
 
                         DestroyAllBullets()
                         ResetPlayer()
 
-                        if g.playerHP <= 0 {
+                        if player.hp <= 0 {
                             // Game failed
+                            DestroyEntityHandle(g.playerHandle)
+                            g.stage = .Defeat
                         }
                     }
                 }
-            }
 
-            if .DestroyOutsideCamera in e.flags {
-                cameraBounds := GetCameraBounds()
-                bounds := GetEntityBounds(e)
-                 // wasInsideCamera := e->isInsideCamera
-
-                if bounds.left  < cameraBounds.left  ||
-                   bounds.right > cameraBounds.right ||
-                   bounds.bot   < cameraBounds.bot   ||
-                   bounds.top   > cameraBounds.top
-                {
+                shield, okShield := ha.GetElementPtr(&g.entities, g.shieldHandle)
+                if okShield && rl.CheckCollisionCircles(e.position, e.collisionSize.x, shield.position, shield.collisionSize.x) {
                     e.toDestroy = true
                 }
             }
 
-            switch controller in  e.controller {
-            case EntityControllerPlayer:
-                UpdatePlayer(e)
+        }
+
+        if .DestroyOutsideCamera in e.flags {
+            cameraBounds := GetCameraBounds()
+            bounds := GetEntityBounds(e)
+             // wasInsideCamera := e->isInsideCamera
+
+            if bounds.left  < cameraBounds.left  ||
+               bounds.right > cameraBounds.right ||
+               bounds.bot   < cameraBounds.bot   ||
+               bounds.top   > cameraBounds.top
+            {
+                e.toDestroy = true
             }
         }
+
+        switch controller in  e.controller {
+        case EntityControllerPlayer:
+            UpdatePlayer(e)
+        case EntityControllerShield:
+            fmt.println(e.lifeTime)
+            player := ha.GetElement(g.entities, g.playerHandle)
+            e.position = player.position
+        }
     }
+
 
     if rl.IsKeyPressed(.R) {
         ResetGame()
@@ -187,23 +232,43 @@ Update :: proc() {
         hpNode.origin = {0, 0}
     }
 
-    if Panel("text") {
-        UILabel("Lives: ", g.playerHP)
+    if g.stage == .Game {
+        if Panel("text") {
+            player := ha.GetElement(g.entities, g.playerHandle)
+            UILabel("Lives: ", i32(player.hp))
+            UILabel("Help: ", g.helpCount)
+        }
     }
 
-    if Panel("patterns", Aligment{.Top, .Left}) {
-        UILabel("Current:", g.currentPattern)
+    if Panel("cheats") {
+        UICheckbox("draw collision", &g.debugDrawCollision)
+        UICheckbox("god mode", &g.debugGodMode)
+    }
 
-        if LayoutBlock("buttons", .X) {
-            if UIButton("prev") {
-                ChangePatternByStep(-1)
-            }
+    if g.stage == .Defeat {
+        if Panel("def") {
+            UILabel("Defeat.")
+            UILabel("Make your wish and...")
 
-            if UIButton("next") {
-                ChangePatternByStep(1)
+            if UIButton("Start again") {
+                ResetGame()
             }
         }
     }
+
+    // if Panel("patterns", Aligment{.Top, .Left}) {
+    //     UILabel("Current:", g.currentPattern)
+
+    //     if LayoutBlock("buttons", .X) {
+    //         if UIButton("prev") {
+    //             ChangePatternByStep(-1)
+    //         }
+
+    //         if UIButton("next") {
+    //             ChangePatternByStep(1)
+    //         }
+    //     }
+    // }
 
     // if Panel("Debug") {
     //     UISliderLabel("treshold", &g.bloom.treshold, 0, 1)
@@ -283,7 +348,15 @@ StartGame :: proc() {
 
     g.playerHandle = CreatePlayer()
     g.enemyHandle = CreateEnemy()
-    g.playerHP = 3
+
+    g.patternState = {}
+
+    StartTransition(&g.patternState)
+    g.patternState.state = -3
+    g.currentPattern = .SimpleAimedAndRandomMovent
+
+    g.helpCount = 4
+
     ResetPlayer()
 }
 
@@ -301,19 +374,28 @@ ChangePatternByStep :: proc(step: int) {
     DestroyAllBullets()
 }
 
+IsLastPatter :: proc(patt: Pattern) -> bool {
+    return (cast(int) patt) == len(Pattern) - 1
+}
+
 Draw :: proc() {
     rl.BeginDrawing()
 
     PPBeginDrawing(g.pp)
     rl.ClearBackground({0, 5, 10, 255})
 
-    DrawGrid()
+
 
     rl.BeginMode3D(g.camera)
+
         rlgl.DisableBackfaceCulling()
         rlgl.DisableDepthTest()
 
-        if g.stage == .Game {
+        DrawSpriteSize(GetTexture(g.assetStorage, .Background), {0, 3}, rl.WHITE, g.camera.fovy + 1)
+
+        DrawGrid()
+
+        if g.stage != .Menu {
             UpdateAndDrawParticleSystem(&g.bossParticles)
             UpdateAndDrawParticleSystem(&g.transitionParticles)
         }
@@ -372,11 +454,12 @@ game_update :: proc() {
 
 ResetGame :: proc() {
     ha.Clear(&g.entities)
-    g.score = 0
+    StartGame()
 }
 
 @(export)
-game_init_window :: proc() {
+game_init_window :: proc() 
+{
     rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
     rl.InitWindow(750, 900, "hiel")
     rl.SetWindowPosition(800, 200)
@@ -415,11 +498,11 @@ game_init :: proc() {
     InitUI(&uiCtx)
     uiCtx.textStyle.font = GetFont(g.assetStorage, .Goldman_Regular)
 
-    g.currentPattern = .MoveAndAimedSpread
 
     game_hot_reloaded(g)
 
     g.debugDrawCollision = true
+    // g.debugGodMode = true
 
     g.bossParticles = DefaultParticleSystem
     g.bossParticles.texture = GetTexture(g.assetStorage, .Scorch_01)
@@ -444,9 +527,11 @@ game_init :: proc() {
 
     InitParticleSystem(&g.transitionParticles)
 
+    rl.SetTextureFilter(GetTexture(g.assetStorage, .Background), .POINT)
+
     // SpawnParticles(&g.transitionParticles, 30)
 
-    StartGame()
+    // StartGame()
 }
 
 @(export)

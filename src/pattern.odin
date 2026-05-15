@@ -8,8 +8,12 @@ import "core:fmt"
 import "core:math/linalg"
 
 import "core:math/ease"
+import "core:math/rand"
 
 Pattern :: enum {
+    SimpleAimedAndRandomMovent,
+    ClassicRosette,
+
     Pattern1,
     Pattern2,
     Pattern3,
@@ -17,7 +21,14 @@ Pattern :: enum {
     MoveAndAimedSpread,
 }
 
+SubpatternState :: struct {
+    timer: f32,
+    step: int
+}
+
 PatternState :: struct {
+    lifeTime: f32,
+
     state: int,
 
     timer: f32,
@@ -26,11 +37,18 @@ PatternState :: struct {
     movementStep: int,
     movementTimer: f32,
 
-    previousPos: v2
+    subpatterns: [16]SubpatternState,
+
+    previousPos: v2,
+    targetPos: v2,
 }
 
 UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
+    state.lifeTime += rl.GetFrameTime()
     switch type {
+    case .ClassicRosette: ClassicRosette(state)
+    case .SimpleAimedAndRandomMovent: SimpleAimedAndRandomMovent(state)
+
     case .Pattern1: Patt_Test1(state)
     case .Pattern2: Patt_Test2(state)
     case .Pattern3: Patt_Test3(state)
@@ -41,6 +59,9 @@ UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
 StartTransition :: proc(state: ^PatternState) {
     state.state = -2
     state.timer = 0
+    state.lifeTime = 0
+
+    state.subpatterns = {}
 
     boss := ha.GetElement(g.entities, g.enemyHandle)
     state.previousPos = boss.position
@@ -50,6 +71,21 @@ StartTransition :: proc(state: ^PatternState) {
 
 PatternTransition :: proc(state: ^PatternState, pos: v2) -> bool {
     switch state.state {
+
+    case -3:
+        state.timer += rl.GetFrameTime()
+        p := state.timer / 3
+
+        g.bossParticles.emitRate = ease.quadratic_in(p) * 30
+        fmt.println(g.bossParticles.emitRate)
+        if state.timer > 3 {
+            g.bossParticles.emitRate = 40
+            state.state = -1
+            state.timer = 0
+
+            boss := ha.GetElement(g.entities, g.enemyHandle)
+            state.previousPos = boss.position
+        }
 
     case -2:
         state.timer += rl.GetFrameTime()
@@ -79,7 +115,7 @@ PatternTransition :: proc(state: ^PatternState, pos: v2) -> bool {
 //////////////////
 
 Patt_Test1 :: proc(state: ^PatternState) {
-    if PatternTransition(state, {0, 8}) {
+    if PatternTransition(state, {0, 5}) {
         return
     }
 
@@ -95,6 +131,8 @@ Patt_Test1 :: proc(state: ^PatternState) {
                 speed = -2,
                 acceleration = 1,
                 angle = AngleTypeParent{},
+
+                size = 0.4,
             },
         }
     }
@@ -128,7 +166,7 @@ Patt_Test1 :: proc(state: ^PatternState) {
 }
 
 Patt_Test2 :: proc(state: ^PatternState) {
-    if PatternTransition(state, {0, 8}) {
+    if PatternTransition(state, {0, 5.5}) {
         return
     }
     
@@ -147,6 +185,7 @@ Patt_Test2 :: proc(state: ^PatternState) {
                 acceleration = 0.3,
                 count = 4,
                 angle = AngleTypeParent{},
+                size = 0.4,
             },
         }
     }
@@ -173,7 +212,7 @@ Patt_Test2 :: proc(state: ^PatternState) {
 }
 
 Patt_Test3 :: proc(state: ^PatternState) {
-    if PatternTransition(state, {0, 8}) {
+    if PatternTransition(state, {0, 6}) {
         return
     }
 
@@ -191,6 +230,7 @@ Patt_Test3 :: proc(state: ^PatternState) {
                 count = 4,
                 angularSpeed = state.step % 2 == 1 ? -20 : 20,
                 angle = AngleTypeParent{},
+                size = 0.4,
             },
         }
     }
@@ -205,6 +245,161 @@ Patt_Test3 :: proc(state: ^PatternState) {
             Spawn({0, 6}, spawn)
             
             state.step += 1
+        }
+    }
+}
+
+SimpleAimedAndRandomMovent :: proc(state: ^PatternState) {
+    start :: v2 {0, 8}
+
+    if PatternTransition(state, start) {
+        return
+    }
+
+    boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+    if ok == false {
+        return
+    }
+
+    moveTime :: 3
+
+    boxMin :: v2{-4, 6}
+    boxMax :: v2{4, 9}
+
+
+    stacksSpawner := Spawner {
+        type = .Stack,
+        minSpeed = 4,
+        maxSpeed = 5.5,
+        // acceleration = 0.3,
+        count = 4,
+        angle = AngleTypeTargeted{},
+        size = 0.7,
+    }
+
+    circleSpawn := Spawner {
+        type = .Circle,
+        count = 28,
+        // angle = AngleTypeFixed { Deg(spawnAngle) },
+        angle = AngleTypeTargeted{},
+
+        children = {
+            {
+                type = .Bullet,
+                // minSpeed = 2,
+                // maxSpeed = 2.4,
+
+                speed = 4,
+
+                // count = 4,
+                // angularSpeed = Deg(angularSpeed),
+                angle = AngleTypeParent{},
+                size = 0.8,
+            },
+        }
+    }
+
+    if state.movementTimer <= 0 {
+        state.previousPos = boss.position
+
+        x := rand.float32_range(boxMin.x, boxMax.x)
+        y := rand.float32_range(boxMin.y, boxMax.y)
+        state.targetPos = {x, y}
+
+        state.movementTimer = moveTime
+
+        Spawn(boss.position, circleSpawn)
+    }
+
+    state.movementTimer -= rl.GetFrameTime()
+    p := ease.quadratic_out(1 - state.movementTimer / moveTime)
+    boss.position = linalg.lerp(state.previousPos, state.targetPos, p)
+
+    shotsCount :: 2
+    interval :: f32(moveTime) / (shotsCount + 1)
+
+    state.timer += rl.GetFrameTime()
+    if state.timer >= interval {
+        state.timer = 0
+        state.step += 1
+
+        if state.step != shotsCount + 1 {
+            Spawn(boss.position, stacksSpawner)
+        }
+        else {
+            state.step = 0
+        }
+    }
+}
+
+ClassicRosette :: proc(state: ^PatternState) {
+    start :: v2 {0, 8}
+
+    if PatternTransition(state, start) {
+        return
+    }
+
+    angularSpeed : f32 = state.step % 2 == 1 ? -12 : 12
+
+    spawnAngle := state.lifeTime * angularSpeed
+
+    circleSpawn := Spawner {
+        type = .Circle,
+        count = 28,
+        // angle = AngleTypeFixed { Deg(spawnAngle) },
+        angle = AngleTypeFixed { Deg(0) },
+
+        children = {
+            {
+                type = .Bullet,
+                // minSpeed = 2,
+                // maxSpeed = 2.4,
+
+                speed = 3,
+
+                // count = 4,
+                angularSpeed = Deg(angularSpeed),
+                angle = AngleTypeParent{},
+                size = 0.8,
+            },
+        }
+    }
+
+    stacksSpawner := Spawner {
+        type = .Spread,
+        count = 4,
+        angle = AngleTypeTargeted {},
+        spredAngle = 25,
+
+        children = {
+            {
+                type = .Stack,
+                minSpeed = 2,
+                maxSpeed = 3,
+                // acceleration = 0.3,
+                count = 3,
+                angle = AngleTypeParent{},
+                size = 1,
+            },
+        }
+    }
+
+    state.timer -= rl.GetFrameTime()
+    state.subpatterns[0].timer += rl.GetFrameTime()
+
+    switch state.state {
+    case 0:
+        if state.timer < 0 {
+            state.timer = 0.4
+
+            Spawn(start, circleSpawn)
+
+            state.step += 1
+        }
+
+        if state.subpatterns[0].timer > 4 {
+            state.subpatterns[0].timer = 0
+            Spawn(start, stacksSpawner)
         }
     }
 }
@@ -252,6 +447,7 @@ MoveAndAimedSpread :: proc(state: ^PatternState) {
                 acceleration = 0.3,
                 count = 4,
                 angle = AngleTypeParent{},
+                size = 0.4,
             },
         }
     }

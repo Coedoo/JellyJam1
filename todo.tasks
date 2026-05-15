@@ -4,7 +4,12 @@
  ✔ Enenmy health UI @done (26-05-11 09:53)
  ✔ pattern switches @done (26-05-11 10:22)
  ✔ enemy movement during patterns @done (26-05-11 11:48)
- ☐ BOMBS
+
+ ☐ Pattern/bullet colors
+ 
+ ☐ BOMBS:
+   ✔ activation @done (26-05-11 22:50)
+   ☐ Some kind of visual indicator of ending
 
  ☐ AUDIO:
    ☐ Shooting
@@ -17,6 +22,13 @@
    ☐ Settings
    ☐ Credits
 
- ☐ Better pattern transitions
+ ✔ Better pattern transitions @done (26-05-13 21:28)
    ✔ Boss movement to start position @done (26-05-11 21:47)
-   ☐ health bar animation
+
+ ☐ Player movement acceleration (????????)
+
+NICE TO HAVE:
+  ☐ health bar animation
+  ☐ hit particles
+  ☐ pause menu
+  ☐ Star spawner

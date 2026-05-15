@@ -17,6 +17,8 @@ EntityFlag :: enum {
     DrawRect,
     SpriteAnimation,
 
+    DrawCircle,
+
     Health,
     Collision,
 
@@ -61,6 +63,8 @@ Entity :: struct {
     gif: Gif_Asset,
     frame: int,
 
+    color: rl.Color,
+
     //
     hp: int,
     toDestroy: bool,
@@ -76,11 +80,13 @@ Entity :: struct {
 
 EntityController :: union {
     EntityControllerPlayer,
-
+    EntityControllerShield,
 }
 
 EntityControllerPlayer :: struct {
+}
 
+EntityControllerShield :: struct {
 }
 
 GetCameraBounds :: proc() -> Rect{
@@ -108,6 +114,10 @@ ResetPlayer :: proc() {
 }
 
 UpdatePlayer :: proc(e: ^Entity) {
+    if g.stage == .Victory {
+        return
+    }
+
     cameraBounds := GetCameraBounds()
 
     // Spawn animation
@@ -134,7 +144,7 @@ UpdatePlayer :: proc(e: ^Entity) {
     }
 
     focus := rl.IsKeyDown(.X)
-    speed: f32 = focus ? 4 : 8
+    speed: f32 = focus ? 3 : 7
 
     input = linalg.normalize0(input)
     e.position += input * rl.GetFrameTime() * speed
@@ -224,15 +234,18 @@ DrawEntity :: proc(e: ^Entity) {
         DrawAnimation(anim, e.position, e.size, i32(e.frame), rotation = e.rotation)
     }
 
-    if e.handle == g.playerHandle {
-        size :: v2{.5, .8}
-        tint := rl.RED
-        if e.handle == g.playerHandle && g.noDamageTimer > 0 {
-            tint = rl.ColorLerp(tint, {100, 100, 100, 255}, math.sin(g.noDamageTimer * 5) * 2 + 1)
-        }
-        rl.DrawRectangleV(e.position - size / 2, size, tint)
-    }
+    // if e.handle == g.playerHandle {
+    //     size :: v2{.5, .8}
+    //     tint := rl.RED
+    //     if e.handle == g.playerHandle && g.noDamageTimer > 0 {
+    //         tint = rl.ColorLerp(tint, {100, 100, 100, 255}, math.sin(g.noDamageTimer * 5) * 2 + 1)
+    //     }
+    //     rl.DrawRectangleV(e.position - size / 2, size, tint)
+    // }
 
+    if .DrawCircle in e.flags {
+        rl.DrawCircleV(e.position, e.collisionSize.x, {255, 255, 0, 100})
+    }
 
     // if .DrawRect in e.flags {
     //     tint := rl.RED
@@ -247,11 +260,14 @@ DrawEntity :: proc(e: ^Entity) {
 CreatePlayer :: proc() -> EntityHandle {
     player := Entity {
         flags = {
-            // .DrawSprite,
-            .DrawRect
+            .DrawSprite,
+            .DrawRect,
+            .Collision,
         },
-        // sprite = .Round_Cat,
+        sprite = .Ship,
+        hp = 1,
         size = 1,
+        collisionSize = 0.04,
         controller = EntityControllerPlayer{},
     }
 
@@ -260,6 +276,10 @@ CreatePlayer :: proc() -> EntityHandle {
 
 DestroyEntity :: proc(entity: ^Entity) {
     ha.FreeSlot(&g.entities, entity.handle)
+}
+
+DestroyEntityHandle :: proc(handle: EntityHandle) {
+    ha.FreeSlot(&g.entities, handle)
 }
 
 GetEntityBounds :: proc(e: ^Entity) -> Rect {
@@ -296,4 +316,17 @@ CreateEnemy :: proc() -> EntityHandle {
     }
 
     return ha.AppendElement(&g.entities, enemy)
+}
+
+CreateShield :: proc() -> EntityHandle {
+    shield := Entity {
+        flags = {
+            .Collision
+        },
+        size = 4,
+        collisionSize = 2,
+        controller = EntityControllerShield{}
+    }
+
+    return ha.AppendElement(&g.entities, shield)
 }
