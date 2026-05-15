@@ -25,6 +25,10 @@ EntityFlag :: enum {
     BulletMovement,
 
     DestroyOutsideCamera,
+
+    DrawCollisionCircle,
+
+    DestroyAfterTime,
 }
 
 // CollisionType :: enum {
@@ -46,6 +50,7 @@ Entity :: struct {
     handle: EntityHandle,
 
     lifeTime: f32,
+    maxLifeTime: f32,
 
     position: v2,
     rotation: Deg,
@@ -81,12 +86,17 @@ Entity :: struct {
 EntityController :: union {
     EntityControllerPlayer,
     EntityControllerShield,
+    EntityControllerHelp,
 }
 
 EntityControllerPlayer :: struct {
 }
 
 EntityControllerShield :: struct {
+}
+
+EntityControllerHelp :: struct {
+    offset: v2,
 }
 
 GetCameraBounds :: proc() -> Rect{
@@ -152,6 +162,12 @@ UpdatePlayer :: proc(e: ^Entity) {
     e.position.x = clamp(e.position.x, cameraBounds.left, cameraBounds.right)
     e.position.y = clamp(e.position.y, cameraBounds.bot, cameraBounds.top)
 
+    if focus {
+        e.flags += {.DrawCollisionCircle}
+    }
+    else {
+        e.flags -= {.DrawCollisionCircle}
+    }
 
     // Shooting
     offsets := [?]v2 {
@@ -199,23 +215,27 @@ UpdatePlayer :: proc(e: ^Entity) {
         ang := focus ? anglesFocused : angles
 
         for _, i in offsets {
-            bullet, handle := ha.CreateElement(&g.entities)
-
-            bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
-            bullet.sprite = .Trace_07
-
-            bullet.owner = .Player
-
-            bullet.position = e.position + off[i]
-            bullet.speed = 50
-
-            bullet.rotation = 90 + ang[i]
-            bullet.spriteRot = -90
-
-            bullet.size = 1
+            SpawnPlayerBullet(e.position + off[i], ang[i])
         }
     }
 
+}
+
+SpawnPlayerBullet :: proc(pos: v2, angle: Deg) {
+    bullet, handle := ha.CreateElement(&g.entities)
+
+    bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
+    bullet.sprite = .Trace_07
+
+    bullet.owner = .Player
+
+    bullet.position = pos
+    bullet.speed = 50
+
+    bullet.rotation = 90 + angle
+    bullet.spriteRot = -90
+
+    bullet.size = 1
 }
 
 DrawEntity :: proc(e: ^Entity) {
@@ -247,6 +267,10 @@ DrawEntity :: proc(e: ^Entity) {
         rl.DrawCircleV(e.position, e.collisionSize.x, {255, 255, 0, 100})
     }
 
+    if .DrawCollisionCircle in e.flags {
+            rl.DrawCircleV(e.position, e.collisionSize.x, e.color)
+    }
+
     // if .DrawRect in e.flags {
     //     tint := rl.RED
     //     if e.handle == g.playerHandle && g.noDamageTimer > 0 {
@@ -269,6 +293,7 @@ CreatePlayer :: proc() -> EntityHandle {
         size = 1,
         collisionSize = 0.04,
         controller = EntityControllerPlayer{},
+        color = rl.RED
     }
 
     return ha.AppendElement(&g.entities, player)
@@ -318,15 +343,63 @@ CreateEnemy :: proc() -> EntityHandle {
     return ha.AppendElement(&g.entities, enemy)
 }
 
-CreateShield :: proc() -> EntityHandle {
-    shield := Entity {
-        flags = {
-            .Collision
-        },
-        size = 4,
-        collisionSize = 2,
-        controller = EntityControllerShield{}
+
+HelpType :: enum {
+    Purple,
+    Yellow,
+    Red,
+    Blue
+}
+
+HelpColor := [HelpType]rl.Color {
+    .Purple = {20, 0, 140, 127},
+    .Yellow = {200, 200, 200, 127},
+    .Red = {200, 0, 20, 127},
+    .Blue = {10, 190, 220, 127},
+}
+
+HelpOffset := [HelpType]v2 {
+    .Purple = {-0.8, -1},
+    .Yellow = {0.8, -1},
+    .Red = {0, -2},
+    .Blue = {},
+}
+
+CreateHelp :: proc() -> bool {
+    if g.helpTimer > 0 || g.helpCount <= 0 {
+        return false
     }
 
-    return ha.AppendElement(&g.entities, shield)
+    type := cast(HelpType) g.helpIdx
+    g.helpIdx += 1
+
+    shield := Entity {
+        flags = {
+            .Collision, .DrawCollisionCircle, .DestroyAfterTime
+        },
+        maxLifeTime = SHIELD_TIME,
+        size = 4,
+        collisionSize = 2,
+        controller = EntityControllerShield{},
+        color = HelpColor[type]
+    }
+
+    g.shieldHandle = ha.AppendElement(&g.entities, shield)
+
+    help := Entity {
+        flags = {
+            .DrawSprite,
+            .DrawRect,
+            .DestroyAfterTime,
+        },
+        maxLifeTime = SHIELD_TIME,
+        sprite = .Ship,
+        size = 1,
+        controller = EntityControllerHelp{ HelpOffset[type] },
+        color = rl.RED
+    }
+
+    ha.AppendElement(&g.entities, help)
+
+    return true
 }

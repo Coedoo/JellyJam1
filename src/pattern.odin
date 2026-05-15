@@ -56,7 +56,7 @@ UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
     }
 }
 
-StartTransition :: proc(state: ^PatternState) {
+StartTransition :: proc(state: ^PatternState, particles: bool) {
     state.state = -2
     state.timer = 0
     state.lifeTime = 0
@@ -66,7 +66,9 @@ StartTransition :: proc(state: ^PatternState) {
     boss := ha.GetElement(g.entities, g.enemyHandle)
     state.previousPos = boss.position
 
-    SpawnParticles(&g.transitionParticles, 30, boss.position)
+    if particles {
+        SpawnParticles(&g.transitionParticles, 30, boss.position)
+    }
 }
 
 PatternTransition :: proc(state: ^PatternState, pos: v2) -> bool {

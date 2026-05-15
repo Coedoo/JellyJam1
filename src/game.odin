@@ -3,6 +3,7 @@ package game
 import "core:fmt"
 import "core:math/linalg"
 import "core:math"
+import "core:math/ease"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 import mu "vendor:microui"
@@ -45,6 +46,7 @@ GameMemory :: struct {
 
     helpTimer: f32,
     shieldHandle: EntityHandle,
+    helpIdx: int,
 
     playerHandle: EntityHandle,
     enemyHandle: EntityHandle,
@@ -84,6 +86,9 @@ PatternHP := [Pattern]int {
     .MoveAndAimedSpread = 200,
 }
 
+SHIELD_TIME :: 4
+SHIELD_VFX_TIME :: 2
+
 
 Update :: proc() {
     if rl.IsKeyPressed(.ESCAPE) {
@@ -98,18 +103,13 @@ Update :: proc() {
     g.noDamageTimer -= frameTime
 
     if rl.IsKeyPressed(.C) {
-        if g.helpTimer <= 0 {
-            g.helpTimer = 4
-            g.shieldHandle = CreateShield()
+        if CreateHelp() {
+            g.helpTimer = SHIELD_TIME
         }
     }
 
     if g.helpTimer > 0 {
         g.helpTimer -= frameTime
-
-        if g.helpTimer < 0 {
-            DestroyEntityHandle(g.shieldHandle)
-        }
     }
 
     if g.stage != .Menu {
@@ -156,7 +156,7 @@ Update :: proc() {
                         }
                         else {
                             ChangePatternByStep(1)
-                            StartTransition(&g.patternState)
+                            StartTransition(&g.patternState, true)
                         }
                     }
                 }
@@ -204,13 +204,31 @@ Update :: proc() {
             }
         }
 
+        if .DestroyAfterTime in e.flags {
+            if e.lifeTime > e.maxLifeTime {
+                e.toDestroy = true
+            }
+        }
+
         switch controller in  e.controller {
         case EntityControllerPlayer:
             UpdatePlayer(e)
         case EntityControllerShield:
-            fmt.println(e.lifeTime)
+            // fmt.println(e.lifeTime)
             player := ha.GetElement(g.entities, g.playerHandle)
             e.position = player.position
+
+        case EntityControllerHelp:
+            player := ha.GetElement(g.entities, g.playerHandle)
+            e.position = math.lerp(e.position, player.position + controller.offset, 10 * frameTime)
+
+            e.shootTimer -= frameTime
+            if rl.IsKeyDown(.Z) {
+                if e.shootTimer < 0 {
+                    e.shootTimer = 0.05
+                    SpawnPlayerBullet(e.position, 0)
+                }
+            }
         }
     }
 
@@ -351,8 +369,8 @@ StartGame :: proc() {
 
     g.patternState = {}
 
-    StartTransition(&g.patternState)
-    g.patternState.state = -3
+    StartTransition(&g.patternState, false)
+    // g.patternState.state = -3
     g.currentPattern = .SimpleAimedAndRandomMovent
 
     g.helpCount = 4
@@ -383,8 +401,6 @@ Draw :: proc() {
 
     PPBeginDrawing(g.pp)
     rl.ClearBackground({0, 5, 10, 255})
-
-
 
     rl.BeginMode3D(g.camera)
 
@@ -421,6 +437,21 @@ Draw :: proc() {
     BloomUse(&g.pp, g.bloom)
 
     PPFinalize(g.pp)
+
+    if g.helpTimer > 0 {
+        rl.BeginMode3D(g.camera)
+
+        p := math.remap(SHIELD_TIME - g.helpTimer, 0, SHIELD_TIME, 0, SHIELD_VFX_TIME)
+        alpha := u8(clamp(math.sin(p * math.PI) * 1.5, 0, 1) * 190)
+        color := rl.Color{255, 255, 255, alpha}
+
+        move := ease.sine_in_out(p) * 3
+        size :=  g.camera.fovy + ease.exponential_in(p) * 2
+
+        DrawSpriteSize(GetTexture(g.assetStorage, .Emburgir_3), {3, move}, color, size)
+
+        rl.EndMode3D()
+    }
 
     muiRender(g.mui)
     DrawUI()
@@ -501,7 +532,7 @@ game_init :: proc() {
 
     game_hot_reloaded(g)
 
-    g.debugDrawCollision = true
+    // g.debugDrawCollision = true
     // g.debugGodMode = true
 
     g.bossParticles = DefaultParticleSystem
@@ -531,7 +562,7 @@ game_init :: proc() {
 
     // SpawnParticles(&g.transitionParticles, 30)
 
-    // StartGame()
+    StartGame()
 }
 
 @(export)
