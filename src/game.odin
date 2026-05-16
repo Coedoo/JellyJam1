@@ -20,6 +20,8 @@ Deg :: distinct f32
 Stage :: enum {
     Menu,
     Game,
+    Victory_Anim1,
+    Victory_Anim2,
     Victory,
     Defeat,
 }
@@ -106,6 +108,17 @@ Update :: proc() {
         Menu()
     }
 
+    if g.stage == .Victory {
+        if Panel("vic", aligment = Aligment{.Middle, .Middle}) {
+            UILabel("Victory.")
+
+            if UIButton("Return to menu") {
+                g.stage = .Menu
+            }
+        }
+        return;
+    }
+
     frameTime := rl.GetFrameTime()
     g.noDamageTimer -= frameTime
 
@@ -159,7 +172,7 @@ Update :: proc() {
                             DestroyAllBullets()
                             DestroyEntityHandle(g.enemyHandle)
 
-                            g.stage = .Victory
+                            g.stage = .Victory_Anim1
                         }
                         else {
                             ChangePatternByStep(1)

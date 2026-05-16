@@ -51,6 +51,7 @@ Entity :: struct {
     flags: EntityFlags,
     handle: EntityHandle,
 
+    animCheckpointTime: f32,
     lifeTime: f32,
     maxLifeTime: f32,
 
@@ -129,12 +130,42 @@ ResetPlayer :: proc() {
     }
 }
 
+MovePlayerToPoint :: proc(e: ^Entity, target: v2, speed: f32) -> bool {
+    epsilon : f32 = 0.05
+    direction := target - e.position;
+    direction = linalg.normalize0(direction)
+    e.position += direction * rl.GetFrameTime() * f32(speed)
+    return linalg.vector_length2(e.position - target) <= epsilon
+}
+
 UpdatePlayer :: proc(e: ^Entity) {
     if g.stage == .Victory {
         return
     }
 
     cameraBounds := GetCameraBounds()
+
+    if g.stage == .Victory_Anim1 {
+        target := v2{0, f32(cameraBounds.top + cameraBounds.bot) / 2}
+        distance := linalg.vector_length2(e.position - target)
+        speed : f32 = clamp(distance, 0.5, 3)
+        arrived := MovePlayerToPoint(e, target, speed)
+
+        if (arrived) {
+            e.animCheckpointTime = e.lifeTime
+            g.stage = .Victory_Anim2
+        }
+        return
+    }
+    if g.stage == .Victory_Anim2 {
+        speed : f32 = clamp(math.pow_f32(1 + (e.lifeTime - e.animCheckpointTime)/0.8, 5), 0, 50)
+        arrived := MovePlayerToPoint(e, v2{0.0, f32(cameraBounds.top)}, speed)
+        if (arrived) {
+            g.stage = .Victory
+            e.toDestroy = true
+        }
+        return
+    }
 
     // Spawn animation
     animTime : f32 = 0.8
