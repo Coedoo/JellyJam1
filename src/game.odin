@@ -91,9 +91,9 @@ PatternHP := [Pattern]int {
     .MoveAndAimedSpread = 200,
 }
 
-SHIELD_TIME :: 4
+SHIELD_TIME :: 5
+SHIELD_END_TIME :: 1
 SHIELD_VFX_TIME :: 2
-
 
 Update :: proc() {
     if rl.IsKeyPressed(.ESCAPE) {
@@ -224,6 +224,13 @@ Update :: proc() {
             // fmt.println(e.lifeTime)
             player := ha.GetElement(g.entities, g.playerHandle)
             e.position = player.position
+
+            tim := SHIELD_TIME - g.helpTimer
+            p := (tim - (SHIELD_TIME - SHIELD_END_TIME)) / SHIELD_END_TIME
+            p = min(1, 1-p)
+            p = ease.circular_out(p)
+
+            e.collisionSize = p * 2
 
         case EntityControllerHelp:
             player := ha.GetElement(g.entities, g.playerHandle)

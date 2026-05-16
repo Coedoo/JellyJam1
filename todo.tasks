@@ -5,7 +5,7 @@
  ✔ pattern switches @done (26-05-11 10:22)
  ✔ enemy movement during patterns @done (26-05-11 11:48)
 
- ☐ Pattern/bullet colors
+ ✔ Pattern/bullet colors @done (26-05-16 17:02)
  
  ☐ BOMBS:
    ✔ activation @done (26-05-11 22:50)
@@ -34,3 +34,6 @@ NICE TO HAVE:
   ☐ hit particles
   ☐ pause menu
   ☐ Star spawner
+  ☐ level particles
+  ☐ player trail particles
+  ☐ Shield shader
