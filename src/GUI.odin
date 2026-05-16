@@ -234,7 +234,7 @@ UIAnchorToPercent: [UIAnchor]v2 = {
 }
 
 InitUI :: proc(uiCtx: ^UIContext) {
-    memory := make([]byte, mem.Megabyte) // @LEAK
+    memory := make([]byte, mem.Megabyte)
     mem.arena_init(&uiCtx.transientArena, memory)
     uiCtx.transientAllocator = mem.arena_allocator(&uiCtx.transientArena)
 
@@ -1400,12 +1400,13 @@ UISliderLabel :: proc(label: string, value: ^f32, min, max: f32) -> bool {
 UISlider :: proc(value: ^f32, min, max: f32) -> (res: bool) {
     PushId(value)
 
-    parent := AddNode("Slider", {.DrawBackground})
+    parent := AddNode("Slider", {.DrawBackground, .Clickable})
     parent.preferredSize[.X] = {.Fixed, 200, 1}
     parent.preferredSize[.Y] = {.Fixed, 20, 1}
     parent.layout.childrenAxis = .X
     parent.layout.childrenAligment = { .Middle, .Middle }
     parent.bgColor = {0.5, 0.5, 0.5, 0.5}
+    parent.hotScale = 1
 
     handleSize :: 18
     PushParent(parent)
@@ -1572,6 +1573,7 @@ ToRLColor :: proc(color: Color) -> rl.Color{
 DrawNode :: proc(node: ^UINode) {
     nodeCenter := node.targetPos + node.targetSize / 2 - node.targetSize * node.origin
 
+    // fmt.println(uiCtx.hotId)
 
     if .Clip in node.flags {
         // left  := i32(node.targetPos.x)

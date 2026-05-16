@@ -364,7 +364,6 @@ Menu :: proc() {
 
 
         case .Settings:
-            @static test: f32
             UISliderLabel("Main Audio", &g.masterVolume, 0, 1)
             UISliderLabel("Sounds",     &g.sfxVolume,    0, 1)
 
