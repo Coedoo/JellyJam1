@@ -152,22 +152,22 @@ LoadAssets :: proc(storage: ^AssetStorage) {
     }
 
     // load sounds and music
-    sounds := make([dynamic]SoundEntry, 0, len(Audio_Assets), storage.allocator)
-    for &info, name in Audio_Assets {
-        entry := SoundEntry {
-            name = name,
-            asset = rl.LoadSound(info.path),
-        }
+    // sounds := make([dynamic]SoundEntry, 0, len(Audio_Assets), storage.allocator)
+    // for &info, name in Audio_Assets {
+    //     entry := SoundEntry {
+    //         name = name,
+    //         asset = rl.LoadSound(info.path),
+    //     }
 
-        append(&sounds, entry)
-    }
+    //     append(&sounds, entry)
+    // }
 
 
     storage.textures = textures[:]
     storage.fonts    = fonts[:]
     storage.shaders  = shaders[:]
     storage.gifs     = gifs[:]
-    storage.sounds   = sounds[:]
+    // storage.sounds   = sounds[:]
 }
 
 GetTexture :: proc(storage: AssetStorage, name: Image_Asset) -> rl.Texture {

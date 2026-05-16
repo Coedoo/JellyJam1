@@ -12,11 +12,11 @@
    ☐ Some kind of visual indicator of ending
 
  ☐ AUDIO:
-   ☐ Shooting
+   ✔ Shooting @done (26-05-16 14:35)
    ☐ hit
    ☐ bomb
-   ☐ boss destroyed
-   ☐ OST
+   ✔ boss destroyed @done (26-05-16 15:19)
+   ✔ OST @done (26-05-16 14:22)
 
  ☐ Main Menu
    ☐ Settings
@@ -26,6 +26,8 @@
    ✔ Boss movement to start position @done (26-05-11 21:47)
 
  ☐ Player movement acceleration (????????)
+
+ ☐ Boss invurnelability lksjfdlkjsd; during transition
 
 NICE TO HAVE:
   ☐ health bar animation

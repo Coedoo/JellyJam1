@@ -68,6 +68,11 @@ GameMemory :: struct {
     bossParticles: ParticleSystem,
     transitionParticles: ParticleSystem,
 
+    // Audio
+    bgm: rl.Music,
+    shootAudio: rl.Sound,
+    bossDestroyAudio: rl.Sound,
+
     // Debug
     debugDrawCollision: bool,
     debugGodMode: bool,
@@ -94,6 +99,8 @@ Update :: proc() {
     if rl.IsKeyPressed(.ESCAPE) {
         g.run = false
     }
+
+    rl.UpdateMusicStream(g.bgm)
 
     if g.stage == .Menu {
         Menu()
@@ -383,6 +390,8 @@ StartGame :: proc() {
 
     g.helpCount = 4
 
+    rl.PlayMusicStream(g.bgm)
+
     ResetPlayer()
 }
 
@@ -493,6 +502,7 @@ game_update :: proc() {
 
 ResetGame :: proc() {
     ha.Clear(&g.entities)
+    ClearParticles(&g.bossParticles)
     StartGame()
 }
 
@@ -543,6 +553,18 @@ game_init :: proc() {
     // g.debugDrawCollision = true
     // g.debugGodMode = true
 
+    ////////////////
+
+    g.bgm = rl.LoadMusicStream(Audio_Assets[.Bgm].path)
+    g.bgm.looping = true
+
+    g.shootAudio = rl.LoadSound(Audio_Assets[.Fire].path)
+    rl.SetSoundVolume(g.shootAudio, 0.3)
+
+    g.bossDestroyAudio = rl.LoadSound(Audio_Assets[.BossDestroy].path)
+
+    ////////////////
+
     g.bossParticles = DefaultParticleSystem
     g.bossParticles.texture = GetTexture(g.assetStorage, .Scorch_01)
     g.bossParticles.emitRate = 40
@@ -570,7 +592,7 @@ game_init :: proc() {
 
     // SpawnParticles(&g.transitionParticles, 30)
 
-    StartGame()
+    // StartGame()
 }
 
 @(export)

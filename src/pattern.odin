@@ -68,6 +68,7 @@ StartTransition :: proc(state: ^PatternState, particles: bool) {
 
     if particles {
         SpawnParticles(&g.transitionParticles, 30, boss.position)
+        rl.PlaySound(g.bossDestroyAudio)
     }
 }
 

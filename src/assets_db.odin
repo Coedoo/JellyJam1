@@ -28,6 +28,9 @@ Gif_Asset :: enum {
 }
 
 Audio_Asset :: enum {
+	Bgm,
+	BossDestroy,
+	Fire,
 }
 
 Shader_Asset :: enum {
@@ -75,7 +78,7 @@ Image_Assets := [Image_Asset]Asset_Info{
 	.Ship = {
 		path       = "assets/ship.png",
 		file_name  = "ship.png",
-		size_bytes = 4436,
+		size_bytes = 4437,
 	},
 	.Trace_07 = {
 		path       = "assets/trace_07.png",
@@ -88,6 +91,21 @@ Gif_Assets := [Gif_Asset]Asset_Info{
 }
 
 Audio_Assets := [Audio_Asset]Asset_Info{
+	.Bgm = {
+		path       = "assets/bgm.ogg",
+		file_name  = "bgm.ogg",
+		size_bytes = 2188975,
+	},
+	.BossDestroy = {
+		path       = "assets/bossDestroy.wav",
+		file_name  = "bossDestroy.wav",
+		size_bytes = 749274,
+	},
+	.Fire = {
+		path       = "assets/fire.wav",
+		file_name  = "fire.wav",
+		size_bytes = 46222,
+	},
 }
 
 Shader_Assets := [Shader_Asset]Asset_Info{

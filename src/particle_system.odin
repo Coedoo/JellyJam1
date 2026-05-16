@@ -317,3 +317,7 @@ UpdateAndDrawParticleSystem :: proc(system: ^ParticleSystem) {
     UpdateParticleSystem(system, rl.GetFrameTime())
     DrawParticleSystem(system)
 }
+
+ClearParticles :: proc(system: ^ParticleSystem) {
+    clear(&system.particles)
+}

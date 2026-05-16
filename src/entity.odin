@@ -219,6 +219,8 @@ UpdatePlayer :: proc(e: ^Entity) {
     if shoot && e.shootTimer < 0 {
         e.shootTimer = 0.05
 
+        rl.PlaySound(g.shootAudio)
+
         off := focus ? offsetsFocused : offsets
         ang := focus ? anglesFocused : angles
 
