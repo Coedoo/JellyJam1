@@ -126,6 +126,7 @@ Update :: proc() {
 
     if rl.IsKeyPressed(.C) {
         if CreateHelp() {
+            g.helpCount -= 1
             g.helpTimer = SHIELD_TIME
         }
     }
