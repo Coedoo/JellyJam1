@@ -210,40 +210,42 @@ UpdatePlayer :: proc(e: ^Entity) {
 
     // Shooting
     offsets := [?]v2 {
-        {0,     0.1},
-        {-0.05, 0},
-        { 0.05, 0},
+        {-0.05, 0.1},
+        { 0.05, 0.1},
+        {-0.2, 0},
+        { 0.2, 0},
 
-        {0.1, 0},
+        {-0.4, -0.4},
+        {-0.3, -0.3},
 
-        {-0.1, 0},
+        {0.4, -0.4},
+        {0.3, -0.3},
     }
 
     angles := [?]Deg {
-        0, 0, 0,
-        35,
-
-        -35
+        0, 0, 0, 0, // front
+        20, 20, // left
+        -20, -20, // right
     }
 
     offsetsFocused := [?]v2 {
-        {0,     0.1},
+        {-0.05, 0.1},
+        { 0.05, 0.1},
         {-0.05, 0},
         { 0.05, 0},
 
-        {0.08, 0},
+        {-0.4, -0.4},
+        {-0.3, -0.3},
 
-        {-0.08, 0},
+        {0.4, -0.4},
+        {0.3, -0.3},
     }
 
     anglesFocused := [?]Deg {
-        0, 0, 0,
-        0,
-
-        0
+        0, 0, 0, 0,
+        5, 0,
+        -5, 0
     }
-
-    #assert(len(offsets) == len(angles))
 
     e.shootTimer -= rl.GetFrameTime()
     shoot := rl.IsKeyDown(.Z)
@@ -294,7 +296,7 @@ DrawEntity :: proc(e: ^Entity) {
     if .DrawSpriteSheet in e.flags {
         DrawSpriteSheetCell(
             e.spriteSheet,
-            e.sheetCell, 
+            e.sheetCell,
             e.position,
             e.spriteTint,
             e.size,
@@ -306,15 +308,6 @@ DrawEntity :: proc(e: ^Entity) {
         DrawAnimation(anim, e.position, e.size, i32(e.frame), rotation = e.rotation)
     }
 
-    // if e.handle == g.playerHandle {
-    //     size :: v2{.5, .8}
-    //     tint := rl.RED
-    //     if e.handle == g.playerHandle && g.noDamageTimer > 0 {
-    //         tint = rl.ColorLerp(tint, {100, 100, 100, 255}, math.sin(g.noDamageTimer * 5) * 2 + 1)
-    //     }
-    //     rl.DrawRectangleV(e.position - size / 2, size, tint)
-    // }
-
     if .DrawCircle in e.flags {
         rl.DrawCircleV(e.position, e.collisionSize.x, {255, 255, 0, 100})
     }
@@ -322,15 +315,6 @@ DrawEntity :: proc(e: ^Entity) {
     if .DrawCollisionCircle in e.flags {
             rl.DrawCircleV(e.position, e.collisionSize.x, e.color)
     }
-
-    // if .DrawRect in e.flags {
-    //     tint := rl.RED
-    //     if e.handle == g.playerHandle && g.noDamageTimer > 0 {
-    //         tint = rl.ColorLerp(tint, {100, 100, 100, 255}, math.sin(g.noDamageTimer * 5) * 2 + 1)
-    //     }
-
-    //     rl.DrawRectangleV(e.position - e.size / 2, e.size, tint)
-    // }
 }
 
 CreatePlayer :: proc() -> EntityHandle {
