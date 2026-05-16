@@ -352,7 +352,7 @@ CreatePlayer :: proc() -> EntityHandle {
             rows = 3,
         },
 
-        hp = 1,
+        hp = 3,
         size = 1.5,
         collisionSize = 0.04,
         controller = EntityControllerPlayer{},

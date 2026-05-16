@@ -5,6 +5,7 @@ import ha "handle_array"
 
 import "core:fmt"
 
+import "core:math"
 import "core:math/linalg"
 
 import "core:math/ease"
@@ -14,9 +15,12 @@ Pattern :: enum {
     SimpleAimedAndRandomMovent,
     ClassicRosette,
 
-    Pattern1,
+    CirclesInLine,
+
     Pattern2,
     Pattern3,
+
+    FourCircles,
 
     MoveAndAimedSpread,
 }
@@ -49,9 +53,10 @@ UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
     case .ClassicRosette: ClassicRosette(state)
     case .SimpleAimedAndRandomMovent: SimpleAimedAndRandomMovent(state)
 
-    case .Pattern1: Patt_Test1(state)
+    case .CirclesInLine: CirclesInLine(state)
     case .Pattern2: Patt_Test2(state)
     case .Pattern3: Patt_Test3(state)
+    case .FourCircles: FourCircles(state)
     case .MoveAndAimedSpread: MoveAndAimedSpread(state)
     }
 }
@@ -117,28 +122,33 @@ PatternTransition :: proc(state: ^PatternState, pos: v2) -> bool {
 
 //////////////////
 
-Patt_Test1 :: proc(state: ^PatternState) {
-    if PatternTransition(state, {0, 5}) {
+CirclesInLine :: proc(state: ^PatternState) {
+    start :: v2{0, 6}
+
+    if PatternTransition(state, start) {
         return
     }
 
     spawn := Spawner {
         type = .Circle,
-        count = 12,
+        count = 18,
         angle = AngleTypeFixed {},
         radius = 0,
 
         children = {
             {
                 type = .Bullet,
-                speed = -2,
+                sprite = .Circle_05,
+                speed = 2,
                 acceleration = 1,
                 angle = AngleTypeParent{},
 
-                size = 0.4,
+                size = 0.6,
             },
         }
     }
+
+    @static angle: f32
 
     state.timer -= rl.GetFrameTime()
     switch state.state {
@@ -148,16 +158,20 @@ Patt_Test1 :: proc(state: ^PatternState) {
 
     case 1:
         if state.timer < 0 {
-            Spawn({f32(state.step) *  0.4, 5}, spawn)
-            Spawn({f32(state.step) * -0.4, 5}, spawn)
+            dir := v2{math.cos(angle), math.sin(angle)}
+
+            Spawn(start + dir * f32(state.step) *  0.8, spawn)
+            Spawn(start + dir * f32(state.step) * -0.8, spawn)
 
             state.step += 1
             state.timer = .4
 
-            if state.step > 10 {
+            if state.step > 8 {
                 state.step = 0
                 state.state = 2
-                state.timer = 4
+                state.timer = 3.5
+
+                angle = rand.float32_range(-30, 30) * math.RAD_PER_DEG
             }
         }
     case 2:
@@ -183,6 +197,7 @@ Patt_Test2 :: proc(state: ^PatternState) {
         children = {
             {
                 type = .Stack,
+                sprite = .Circle_05,
                 minSpeed = 2,
                 maxSpeed = 3,
                 acceleration = 0.3,
@@ -227,6 +242,7 @@ Patt_Test3 :: proc(state: ^PatternState) {
         children = {
             {
                 type = .Stack,
+                sprite = .Circle_05,
                 minSpeed = 2,
                 maxSpeed = 2.4,
 
@@ -292,6 +308,7 @@ SimpleAimedAndRandomMovent :: proc(state: ^PatternState) {
                 // minSpeed = 2,
                 // maxSpeed = 2.4,
 
+                sprite = .Circle_05,
                 speed = 4,
 
                 // count = 4,
@@ -342,7 +359,7 @@ ClassicRosette :: proc(state: ^PatternState) {
         return
     }
 
-    angularSpeed : f32 = state.step % 2 == 1 ? -12 : 12
+    angularSpeed : f32 = state.step % 2 == 1 ? -20 : 20
 
     spawnAngle := state.lifeTime * angularSpeed
 
@@ -358,31 +375,33 @@ ClassicRosette :: proc(state: ^PatternState) {
                 // minSpeed = 2,
                 // maxSpeed = 2.4,
 
+                sprite = .Circle_05,
                 speed = 3,
 
                 // count = 4,
                 angularSpeed = Deg(angularSpeed),
                 angle = AngleTypeParent{},
-                size = 0.8,
+                size = 0.7,
             },
         }
     }
 
     stacksSpawner := Spawner {
         type = .Spread,
-        count = 4,
+        count = 3,
         angle = AngleTypeTargeted {},
         spredAngle = 25,
 
         children = {
             {
                 type = .Stack,
+                sprite = .Circle_03,
                 minSpeed = 2,
                 maxSpeed = 3,
                 // acceleration = 0.3,
                 count = 3,
                 angle = AngleTypeParent{},
-                size = 1,
+                size = 0.5,
             },
         }
     }
@@ -402,7 +421,7 @@ ClassicRosette :: proc(state: ^PatternState) {
 
         if state.subpatterns[0].timer > 4 {
             state.subpatterns[0].timer = 0
-            Spawn(start, stacksSpawner)
+            // Spawn(start, stacksSpawner)
         }
     }
 }
@@ -445,6 +464,7 @@ MoveAndAimedSpread :: proc(state: ^PatternState) {
         children = {
             {
                 type = .Stack,
+                sprite = .Circle_05,
                 minSpeed = 2,
                 maxSpeed = 3,
                 acceleration = 0.3,
@@ -464,3 +484,55 @@ MoveAndAimedSpread :: proc(state: ^PatternState) {
     }
 }
 
+// It's pretty easy, the pattern is very predictable
+FourCircles :: proc(state: ^PatternState) {
+    start :: v2{0, 7}
+
+    if PatternTransition(state, start) {
+        return
+    }
+
+    spawnPoints := 
+    [][]v2{ 
+        []v2{{-5.5, 4}, {5.5, 4}},
+        []v2{{-4, 6}, {4, 6}},
+    }
+
+
+    circleSpawn := Spawner {
+        type = .Circle,
+        count = 28,
+        // angle = AngleTypeFixed { Deg(state.step * 10) },
+
+        children = {
+            {
+                type = .Bullet,
+
+                sprite = .Circle_05,
+                speed = 2,
+
+                angle = AngleTypeParent{},
+                size = 0.7,
+            },
+        }
+    }
+
+    state.timer -= rl.GetFrameTime()
+    switch state.state {
+    case 0:
+        if state.timer < 0 {
+            state.timer = 0.6
+
+            rowIdx := state.step % len(spawnPoints)
+
+            for p, i in spawnPoints[rowIdx] {
+                dir := i % 2 == 0 ? -1 : 1
+                angleStep := state.step % 2 == 0 ? 10 : 18
+                circleSpawn.angle = AngleTypeFixed{Deg(state.step * angleStep * dir)}
+                Spawn(p, circleSpawn)
+            }
+
+            state.step += 1
+        }
+    }
+}

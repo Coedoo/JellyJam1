@@ -86,9 +86,11 @@ PatternHP := [Pattern]int {
     .SimpleAimedAndRandomMovent = 700,
     .ClassicRosette = 1000,
 
-    .Pattern1 = 500,
+    .CirclesInLine = 1500,
     .Pattern2 = 320,
     .Pattern3 = 320,
+
+    .FourCircles = 1000,
 
     .MoveAndAimedSpread = 200,
 }
@@ -165,7 +167,11 @@ Update :: proc() {
                 if ok && rl.CheckCollisionCircles(e.position, e.collisionSize.x, boss.position, boss.collisionSize.x) {
                     e.toDestroy = true
 
-                    boss.hp -= 1
+                    // negative states are transition state so we don't want to 
+                    // damage boss during those
+                    if g.patternState.state >= 0 {
+                        boss.hp -= 1
+                    }
 
                     if boss.hp <= 0 {
                         if IsLastPatter(g.currentPattern) {
@@ -404,8 +410,9 @@ StartGame :: proc() {
     g.patternState = {}
 
     StartTransition(&g.patternState, false)
-    // g.patternState.state = -3
-    g.currentPattern = .SimpleAimedAndRandomMovent
+    g.patternState.state = -3
+    g.currentPattern = nil
+    // g.currentPattern = .FourCircles
 
     g.helpCount = 4
 
@@ -448,7 +455,11 @@ Draw :: proc() {
         DrawGrid()
 
         if g.stage != .Menu {
-            UpdateAndDrawParticleSystem(&g.bossParticles)
+            if ha.IsHandleValid(g.entities, g.enemyHandle) {
+                UpdateParticleSystem(&g.bossParticles, rl.GetFrameTime())
+            }
+
+            DrawParticleSystem(&g.bossParticles)
             UpdateAndDrawParticleSystem(&g.transitionParticles)
         }
         

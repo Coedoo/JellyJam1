@@ -7,9 +7,10 @@
 
  ✔ Pattern/bullet colors @done (26-05-16 17:02)
  
- ☐ BOMBS:
+ ✔ BOMBS: @done (26-05-16 17:08)
    ✔ activation @done (26-05-11 22:50)
-   ☐ Some kind of visual indicator of ending
+   ✔ Some kind of visual indicator of ending @done (26-05-16 17:08)
+  ☐ Shield shader
 
  ☐ AUDIO:
    ✔ Shooting @done (26-05-16 14:35)
@@ -25,9 +26,9 @@
  ✔ Better pattern transitions @done (26-05-13 21:28)
    ✔ Boss movement to start position @done (26-05-11 21:47)
 
- ☐ Player movement acceleration (????????)
+ ✘ Player movement acceleration (????????) @cancelled (26-05-16 21:52)
 
- ☐ Boss invurnelability lksjfdlkjsd; during transition
+ ✔ Boss invurnelability lksjfdlkjsd; during transition @done (26-05-16 21:52)
 
 NICE TO HAVE:
   ☐ health bar animation
@@ -36,4 +37,3 @@ NICE TO HAVE:
   ☐ Star spawner
   ☐ level particles
   ☐ player trail particles
-  ☐ Shield shader

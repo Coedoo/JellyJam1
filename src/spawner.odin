@@ -41,6 +41,8 @@ Spawner :: struct {
 
     type: SpawnerType,
 
+    sprite: Image_Asset,
+
     // position: v2,
     count: int,
     speed: f32,
@@ -90,7 +92,7 @@ SpawnEnemyBullet :: proc(pos: v2, sprite: Image_Asset, speed, acc: f32, rot, ang
     bullet.owner = .Enemy
 
     bullet.sprite = sprite
-    bullet.spriteTint = rl.RED
+    bullet.spriteTint = rl.WHITE
 
     bullet.position = pos
     bullet.speed = speed
@@ -109,7 +111,7 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
     case .Bullet: // Spawn at pos, with speed, angle, angular velocity and acceleration
         SpawnEnemyBullet(
             pos,
-            .Circle_05,
+            spawner.sprite,
             spawner.speed,
             spawner.acceleration,
             GetAngle(spawner.angle, pos),
@@ -122,7 +124,7 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
 
             SpawnEnemyBullet(
                 pos,
-                .Circle_05,
+                spawner.sprite,
                 math.lerp(spawner.minSpeed, spawner.maxSpeed, f32(i) / f32(spawner.count)),
                 spawner.acceleration,
                 GetAngle(spawner.angle, pos),

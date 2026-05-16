@@ -17,6 +17,7 @@ Unknown_Asset :: enum {
 Image_Asset :: enum {
 	Emburgir_3,
 	Background,
+	Circle_03,
 	Circle_05,
 	Maple,
 	Scorch_01,
@@ -59,6 +60,11 @@ Image_Assets := [Image_Asset]Asset_Info{
 		path       = "assets/background.png",
 		file_name  = "background.png",
 		size_bytes = 41389,
+	},
+	.Circle_03 = {
+		path       = "assets/circle_03.png",
+		file_name  = "circle_03.png",
+		size_bytes = 145704,
 	},
 	.Circle_05 = {
 		path       = "assets/circle_05.png",
