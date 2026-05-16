@@ -17,6 +17,8 @@ EntityFlag :: enum {
     DrawRect,
     SpriteAnimation,
 
+    DrawSpriteSheet,
+
     DrawCircle,
 
     Health,
@@ -64,6 +66,9 @@ Entity :: struct {
     //
     sprite: Image_Asset,
     spriteRot: Deg,
+
+    sheetCell: [2]i32,
+    spriteSheet: SpriteSheet,
 
     gif: Gif_Asset,
     frame: int,
@@ -163,6 +168,8 @@ UpdatePlayer :: proc(e: ^Entity) {
     e.position.x = clamp(e.position.x, cameraBounds.left, cameraBounds.right)
     e.position.y = clamp(e.position.y, cameraBounds.bot, cameraBounds.top)
 
+    e.sheetCell.y = 1 + i32(input.x)
+
     if focus {
         e.flags += {.DrawCollisionCircle}
     }
@@ -251,6 +258,16 @@ DrawEntity :: proc(e: ^Entity) {
         }
     }
 
+    if .DrawSpriteSheet in e.flags {
+        DrawSpriteSheetCell(
+            e.spriteSheet,
+            e.sheetCell, 
+            e.position,
+            e.spriteTint,
+            e.size,
+            e.rotation + e.spriteRot)
+    }
+
     if .SpriteAnimation in  e.flags {
         anim := GetGif(g.assetStorage, e.gif)
         DrawAnimation(anim, e.position, e.size, i32(e.frame), rotation = e.rotation)
@@ -286,14 +303,24 @@ DrawEntity :: proc(e: ^Entity) {
 CreatePlayer :: proc() -> EntityHandle {
     player := Entity {
         flags = {
-            .DrawSprite,
+            // .DrawSprite,
             .DrawRect,
             .Collision,
+            .DrawSpriteSheet,
         },
         sprite = .Ship,
         spriteTint = rl.WHITE,
+
+        sheetCell = {0, 1},
+        spriteSheet =  {
+            texture = GetTexture(g.assetStorage, .Ship),
+            frameSize = {48, 48},
+            columns = 4,
+            rows = 3,
+        },
+
         hp = 1,
-        size = 1,
+        size = 1.5,
         collisionSize = 0.04,
         controller = EntityControllerPlayer{},
         color = rl.RED
@@ -391,12 +418,22 @@ CreateHelp :: proc() -> bool {
 
     help := Entity {
         flags = {
-            .DrawSprite,
+            // .DrawSprite,
+            .DrawSpriteSheet,
             .DrawRect,
             .DestroyAfterTime,
         },
         maxLifeTime = SHIELD_TIME,
         sprite = .Ship,
+
+        sheetCell = {1, 1},
+        spriteSheet =  {
+            texture = GetTexture(g.assetStorage, .Ship),
+            frameSize = {48, 48},
+            columns = 4,
+            rows = 3,
+        },
+
         spriteTint = rl.WHITE,
         size = 1,
         controller = EntityControllerHelp{ HelpOffset[type] },

@@ -75,7 +75,7 @@ Image_Assets := [Image_Asset]Asset_Info{
 	.Ship = {
 		path       = "assets/ship.png",
 		file_name  = "ship.png",
-		size_bytes = 581,
+		size_bytes = 4436,
 	},
 	.Trace_07 = {
 		path       = "assets/trace_07.png",

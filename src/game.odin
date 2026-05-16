@@ -222,6 +222,14 @@ Update :: proc() {
             player := ha.GetElement(g.entities, g.playerHandle)
             e.position = math.lerp(e.position, player.position + controller.offset, 10 * frameTime)
 
+            delta := e.position - player.position
+            if linalg.length(delta) > 0.02 {
+                e.sheetCell.y = 1 + math.sign(i32(delta.x))
+            }
+            else {
+                e.sheetCell.y = 1
+            }
+
             e.shootTimer -= frameTime
             if rl.IsKeyDown(.Z) {
                 if e.shootTimer < 0 {
