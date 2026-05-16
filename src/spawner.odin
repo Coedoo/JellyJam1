@@ -64,6 +64,11 @@ Spawner :: struct {
     maxSpeed: f32,
 }
 
+BulletSizes := #partial [Image_Asset]f32 {
+    .Circle_03 = 0.8,
+    .Circle_05 = 0.35,
+}
+
 GetAngle :: proc(angle: AngleType, position: v2) -> Deg {
     switch v in angle {
     case AngleTypeParent:
@@ -101,7 +106,7 @@ SpawnEnemyBullet :: proc(pos: v2, sprite: Image_Asset, speed, acc: f32, rot, ang
     bullet.angularSpeed = angSpeed
 
     bullet.size = size
-    bullet.collisionSize = bullet.size / 2 - (0.37 * bullet.size)
+    bullet.collisionSize = (bullet.size * BulletSizes[sprite]) / 2
 
     ha.AppendElement(&g.entities, bullet)
 }

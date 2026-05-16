@@ -290,6 +290,7 @@ SimpleAimedAndRandomMovent :: proc(state: ^PatternState) {
         type = .Stack,
         minSpeed = 4,
         maxSpeed = 5.5,
+        sprite = .Circle_05,
         // acceleration = 0.3,
         count = 4,
         angle = AngleTypeTargeted{},
