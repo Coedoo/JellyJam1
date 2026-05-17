@@ -397,15 +397,15 @@ HelpType :: enum {
     Yellow,
     Purple,
     Red,
-    White,
+    Combined,
 }
 
 HelpColor := [HelpType]rl.Color {
-    .Blue   = {10, 190, 220, 100},
-    .Yellow = {255, 248, 181, 100},
-    .Purple = {255, 186, 238, 100},
-    .Red    = {200, 0, 20, 100},
-    .White  = {255, 255, 255, 100},
+    .Blue       = {10, 190, 220, 100},
+    .Yellow     = {255, 248, 181, 100},
+    .Purple     = {255, 186, 238, 100},
+    .Red        = {200, 0, 20, 100},
+    .Combined   = {255, 255, 255, 100},
 }
 
 HelpOffset := [HelpType]v2 {
@@ -413,7 +413,7 @@ HelpOffset := [HelpType]v2 {
     .Yellow = {0.8, -1},
     .Purple = {-0.8, -1},
     .Red = {0, -2},
-    .White = {},
+    .Combined = {},
 }
 
 HelpAsset :: struct {
@@ -426,30 +426,10 @@ HelpSprites := [HelpType]HelpAsset {
     .Yellow = {.Lumi,         v2{0.55, 0.5}},
     .Red    = {.Dizzy,        v2{0.5, 0.5}},
     .Blue   = {.YelliHoshimi, v2{0.6, 0.5}},
-    .White  = {.Combined,     v2{0.5, 0.4}},
+    .Combined  = {.Combined,     v2{0.5, 0.4}},
 }
 
-CreateHelp :: proc() -> bool {
-    if g.helpTimer > 0 || g.helpIdx >= HELP_COUNT {
-        return false
-    }
-
-    type := cast(HelpType) g.helpIdx
-    g.helpIdx += 1
-
-    shield := Entity {
-        flags = {
-            .Collision, .DrawCollisionCircle, .DestroyAfterTime
-        },
-        maxLifeTime = SHIELD_TIME,
-        size = 4,
-        collisionSize = 2,
-        controller = EntityControllerShield{},
-        color = HelpColor[type]
-    }
-
-    g.shieldHandle = ha.AppendElement(&g.entities, shield)
-
+CreateSingleHelp :: proc(type : HelpType) -> Entity {
     help := Entity {
         flags = {
             // .DrawSprite,
@@ -473,8 +453,39 @@ CreateHelp :: proc() -> bool {
         controller = EntityControllerHelp{ HelpOffset[type] },
         color = rl.RED
     }
+    return help
+}
 
-    ha.AppendElement(&g.entities, help)
+CreateHelp :: proc() -> bool {
+    if g.helpTimer > 0 || g.helpIdx >= HELP_COUNT {
+        return false
+    }
+
+    type := cast(HelpType) g.helpIdx
+    g.helpIdx += 1
+
+    shield := Entity {
+        flags = {
+            .Collision, .DrawCollisionCircle, .DestroyAfterTime
+        },
+        maxLifeTime = SHIELD_TIME,
+        size = 4,
+        collisionSize = 2,
+        controller = EntityControllerShield{},
+        color = HelpColor[type]
+    }
+
+    g.shieldHandle = ha.AppendElement(&g.entities, shield)
+
+    if (type == .Blue) {
+        // shield only, no helper jet
+    } else if (type == .Combined) {
+        ha.AppendElement(&g.entities, CreateSingleHelp(.Yellow))
+        ha.AppendElement(&g.entities, CreateSingleHelp(.Purple))
+        ha.AppendElement(&g.entities, CreateSingleHelp(.Red))
+    } else {
+        ha.AppendElement(&g.entities, CreateSingleHelp(type))
+    }
 
     rl.PlaySound(g.shieldAudio)
 
