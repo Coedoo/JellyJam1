@@ -41,7 +41,7 @@ GameMemory :: struct {
 
     camera: rl.Camera,
 
-    entities: ha.HandleArray(Entity, EntityHandle, 1024),
+    entities: ha.HandleArray(Entity, EntityHandle, 5000),
 
     helpCount: int,
     noDamageTimer: f32,
@@ -93,6 +93,8 @@ PatternHP := [Pattern]int {
     .FourCircles = 1000,
 
     .MoveAndAimedSpread = 200,
+
+    .TEST = 1000
 }
 
 SHIELD_TIME :: 5
@@ -193,7 +195,7 @@ Update :: proc() {
                 player, ok := ha.GetElementPtr(&g.entities, g.playerHandle)
 
                 if ok && rl.CheckCollisionCircles(e.position, e.collisionSize.x, player.position, player.collisionSize.x) {
-                    if player.hp > 0 && g.debugGodMode == false {
+                    if player.hp > 0 && g.noDamageTimer <= 0 && g.debugGodMode == false {
                         e.toDestroy = true
 
                         player.hp -= 1
@@ -222,10 +224,15 @@ Update :: proc() {
             bounds := GetEntityBounds(e)
              // wasInsideCamera := e->isInsideCamera
 
-            if bounds.left  < cameraBounds.left  ||
-               bounds.right > cameraBounds.right ||
-               bounds.bot   < cameraBounds.bot   ||
-               bounds.top   > cameraBounds.top
+            cameraBounds.top   *= 1.5
+            cameraBounds.bot   *= 1.5
+            cameraBounds.right *= 1.5
+            cameraBounds.left  *= 1.5
+
+            if bounds.right  < cameraBounds.left  ||
+               bounds.left > cameraBounds.right   ||
+               bounds.top   < cameraBounds.bot    ||
+               bounds.bot   > cameraBounds.top
             {
                 e.toDestroy = true
             }
@@ -295,8 +302,11 @@ Update :: proc() {
     if g.stage == .Game {
         if Panel("text") {
             player := ha.GetElement(g.entities, g.playerHandle)
-            UILabel("Lives: ", i32(player.hp))
+            UILabel("Lifes: ", i32(player.hp))
             UILabel("Help: ", g.helpCount)
+
+            UILabel("Entity count: ", len(g.entities.elements))
+
         }
     }
 
@@ -411,13 +421,15 @@ StartGame :: proc() {
     g.patternState = {}
 
     StartTransition(&g.patternState, false)
-    g.patternState.state = -3
+    // g.patternState.state = -3
     g.currentPattern = nil
-    // g.currentPattern = .FourCircles
+    g.currentPattern = .TEST
+
+    // g.debugGodMode = true
 
     g.helpCount = 4
 
-    rl.PlayMusicStream(g.bgm)
+    // rl.PlayMusicStream(g.bgm)
 
     ResetPlayer()
 }
@@ -623,7 +635,7 @@ game_init :: proc() {
 
     // SpawnParticles(&g.transitionParticles, 30)
 
-    // StartGame()
+    StartGame()
 }
 
 @(export)

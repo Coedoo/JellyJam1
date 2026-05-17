@@ -23,6 +23,8 @@ Pattern :: enum {
     FourCircles,
 
     MoveAndAimedSpread,
+
+    StarTrap,
 }
 
 SubpatternState :: struct {
@@ -58,6 +60,7 @@ UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
     case .Pattern3: Patt_Test3(state)
     case .FourCircles: FourCircles(state)
     case .MoveAndAimedSpread: MoveAndAimedSpread(state)
+    case .StarTrap: StarTrap(state)
     }
 }
 
@@ -534,6 +537,79 @@ FourCircles :: proc(state: ^PatternState) {
             }
 
             state.step += 1
+        }
+    }
+}
+
+StarTrap :: proc(state: ^PatternState) {
+    if PatternTransition(state, {0, 6}) {
+        return
+    }
+ 
+    starStack := Spawner {
+        type = .Circle,
+        count = 5,
+        radius = 7.5,
+        angle = AngleTypeFixed { Deg(state.step * 15) },
+
+        children = {
+            {
+                type = .Circle,
+                count = 5,
+                angle = AngleTypeParent{},
+                children = {
+                    {
+                        type = .Stack,
+                        sprite = .Circle_05,
+                        minSpeed = 1,
+                        maxSpeed = 4,
+                        // acceleration = 0.3,
+                        count = 18,
+                        angle = AngleTypeParent{},
+                        size = 0.4,
+                    },
+                }
+            },
+        }
+    }
+
+    targeted := Spawner {
+        type = .Circle,
+        count = 5,
+        radius = 0,
+        angle = AngleTypeFixed { Deg(state.subpatterns[0].step * 20) },
+        children = {
+            {
+                type = .Stack,
+                sprite = .Circle_03,
+                minSpeed = 2,
+                maxSpeed = 7,
+                // acceleration = 0.3,
+                // angularSpeed = 10,
+                count = 5,
+                angle = AngleTypeParent{},
+                size = 0.4,
+            },
+        }
+    }
+
+    state.timer -= rl.GetFrameTime()
+    state.subpatterns[0].timer += rl.GetFrameTime()
+
+    switch state.state {
+    case 0:
+        if state.timer < 0 {
+            state.timer = 0.7
+            Spawn({0, 5.5}, starStack)
+
+            state.step += 1
+        }
+
+        if state.subpatterns[0].timer >= 0.8 {
+            state.subpatterns[0].timer = 0
+            state.subpatterns[0].step += 1
+
+            Spawn({0, 5.5}, targeted)
         }
     }
 }
