@@ -393,35 +393,44 @@ CreateEnemy :: proc() -> EntityHandle {
 
 
 HelpType :: enum {
-    Purple,
+    Blue,
     Yellow,
+    Purple,
     Red,
-    Blue
+    White,
 }
 
 HelpColor := [HelpType]rl.Color {
-    .Purple = {20, 0, 140, 127},
-    .Yellow = {200, 200, 200, 127},
-    .Red = {200, 0, 20, 127},
-    .Blue = {10, 190, 220, 127},
+    .Blue   = {10, 190, 220, 100},
+    .Yellow = {255, 248, 181, 100},
+    .Purple = {255, 186, 238, 100},
+    .Red    = {200, 0, 20, 100},
+    .White  = {255, 255, 255, 100},
 }
 
 HelpOffset := [HelpType]v2 {
-    .Purple = {-0.8, -1},
-    .Yellow = {0.8, -1},
-    .Red = {0, -2},
     .Blue = {},
+    .Yellow = {0.8, -1},
+    .Purple = {-0.8, -1},
+    .Red = {0, -2},
+    .White = {},
 }
 
-HelpSprites := [HelpType]Image_Asset {
-    .Purple = .Emburgir_3,
-    .Yellow = .Lumi,
-    .Red = .Dizzy,
-    .Blue = .YelliHoshimi,
+HelpAsset :: struct {
+    assetName : Image_Asset,
+    origin : v2,
+}
+
+HelpSprites := [HelpType]HelpAsset {
+    .Purple = {.Emburgir_3,   v2{0.5, 0.5}},
+    .Yellow = {.Lumi,         v2{0.55, 0.5}},
+    .Red    = {.Dizzy,        v2{0.5, 0.5}},
+    .Blue   = {.YelliHoshimi, v2{0.6, 0.5}},
+    .White  = {.Combined,     v2{0.5, 0.4}},
 }
 
 CreateHelp :: proc() -> bool {
-    if g.helpTimer > 0 || g.helpCount <= 0 {
+    if g.helpTimer > 0 || g.helpIdx >= HELP_COUNT {
         return false
     }
 
