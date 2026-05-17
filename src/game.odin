@@ -388,7 +388,7 @@ Menu :: proc() {
     style.bgColor = {0, 0, 0, 0.7}
 
     NextNodeStyle(style)
-    NextNodePosition({70, 300}, origin = {0, 0})
+    NextNodePosition({70, f32(rl.GetScreenHeight()) / 2}, origin = {0, 0.5})
     if Panel("Menu", aligment = Aligment{.Middle, .Left}) {
 
         style = uiCtx.buttonStyle
@@ -425,17 +425,30 @@ Menu :: proc() {
 
         case .Credits:
             UISpacer(20)
+            UILabel("Programing:")
+            UILabel("\tCoedo")
+            UILabel("\tSheepiro")
+            UISpacer(5)
+            UILabel("Art:")
+            UILabel("\tTheSecondAce")
+            UILabel("\tSheepiro##lskjdf")
+            UISpacer(5)
+            UILabel("Music:")
+            UILabel("\tLuca Chuba")
+
             if UIButton("Back") do g.menuStage = .Main
         }
         PopStyle()
 
-        NextNodePosition({530, 400})
-        if Panel("controls", aligment = Aligment{.Middle, .Left}) {
-            UILabel("Controls")
-            UILabel("Arrows - move")
-            UILabel("Z - Fire")
-            UILabel("X - Focus")
-            UILabel("Y - Shield")
+        if g.menuStage == .Main {
+            NextNodePosition({530, 400})
+            if Panel("controls", aligment = Aligment{.Middle, .Left}) {
+                UILabel("Controls")
+                UILabel("Arrows - move")
+                UILabel("Z - Fire")
+                UILabel("X - Focus")
+                UILabel("Y - Shield")
+            }
         }
     }
 }
@@ -621,8 +634,8 @@ game_init :: proc() {
     ////
 
 
-    InitUI(&uiCtx)
-    uiCtx.textStyle.font = GetFont(g.assetStorage, .Goldman_Regular)
+    InitUI(&uiCtx, GetFont(g.assetStorage, .Goldman_Regular))
+    // uiCtx.textStyle.font = GetFont(g.assetStorage, .Goldman_Regular)
 
 
     game_hot_reloaded(g)

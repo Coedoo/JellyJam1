@@ -233,14 +233,14 @@ UIAnchorToPercent: [UIAnchor]v2 = {
     .BorRight     = {1,   1},
 }
 
-InitUI :: proc(uiCtx: ^UIContext) {
+InitUI :: proc(uiCtx: ^UIContext, font: rl.Font) {
     memory := make([]byte, mem.Megabyte)
     mem.arena_init(&uiCtx.transientArena, memory)
     uiCtx.transientAllocator = mem.arena_allocator(&uiCtx.transientArena)
 
     // font := LoadDefaultFont(renderCtx)
     uiCtx.defaultStyle = {
-        // font = font,
+        font = font,
         fontSize = 40,
         textAligment = {.Middle, .Middle},
 
