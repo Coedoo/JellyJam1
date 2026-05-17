@@ -499,7 +499,7 @@ Menu :: proc() {
                 UILabel("Arrows - move")
                 UILabel("Z - Fire")
                 UILabel("X - Focus")
-                UILabel("Y - Shield")
+                UILabel("C - Shield")
             }
         }
     }
