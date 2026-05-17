@@ -705,6 +705,11 @@ game_init :: proc() {
 
     rl.SetTextureFilter(GetTexture(g.assetStorage, .Background), .POINT)
 
+
+    for &s in HelpSprites {
+        rl.SetTextureFilter(GetTexture(g.assetStorage, s.assetName), .BILINEAR)
+    }
+
     // SpawnParticles(&g.transitionParticles, 30)
 
     // StartGame()

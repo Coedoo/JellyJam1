@@ -15,6 +15,7 @@ Unknown_Asset :: enum {
 }
 
 Image_Asset :: enum {
+	Combined,
 	Dizzy,
 	Emburgir_3,
 	Lumi,
@@ -58,6 +59,11 @@ Unknown_Assets := [Unknown_Asset]Asset_Info{
 }
 
 Image_Assets := [Image_Asset]Asset_Info{
+	.Combined = {
+		path       = "assets/Combined.png",
+		file_name  = "Combined.png",
+		size_bytes = 4303018,
+	},
 	.Dizzy = {
 		path       = "assets/Dizzy.png",
 		file_name  = "Dizzy.png",
