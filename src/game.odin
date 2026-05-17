@@ -81,6 +81,7 @@ GameMemory :: struct {
     // Debug
     debugDrawCollision: bool,
     debugGodMode: bool,
+    debugGodBullet: bool,
 }
 
 g: ^GameMemory
@@ -108,6 +109,7 @@ SHIELD_TIME :: 5
 SHIELD_END_TIME :: 1
 SHIELD_VFX_TIME :: 2
 HELP_COUNT :: 5
+GOD_BULLET_DMG :: 100
 
 Update :: proc() {
     if rl.IsKeyPressed(.ESCAPE) {
@@ -183,7 +185,7 @@ Update :: proc() {
                     // negative states are transition state so we don't want to 
                     // damage boss during those
                     if g.patternState.state >= 0 {
-                        boss.hp -= 1
+                        boss.hp -= g.debugGodBullet ? GOD_BULLET_DMG : 1
 
                         rl.PlaySound(g.bossHitAudio)
                         // if rl.IsSoundPlaying(g.bossHitAudio) == false {
@@ -330,6 +332,7 @@ Update :: proc() {
     if Panel("cheats") {
         UICheckbox("draw collision", &g.debugDrawCollision)
         UICheckbox("god mode", &g.debugGodMode)
+        UICheckbox("god bullet", &g.debugGodBullet)
     }
 
     if g.stage == .Defeat {
