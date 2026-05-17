@@ -17,16 +17,20 @@ Pattern :: enum {
 
     CirclesInLine,
 
-    Pattern2,
-    Pattern3,
-
-    FourCircles,
 
     MoveAndAimedSpread,
+    FourCircles,
 
     StarTrap,
 
+    Rain,
+
     Coedo,
+
+    END,
+
+    Pattern2,
+    Pattern3,
 }
 
 SubpatternState :: struct {
@@ -63,7 +67,10 @@ UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
     case .FourCircles: FourCircles(state)
     case .MoveAndAimedSpread: MoveAndAimedSpread(state)
     case .StarTrap: StarTrap(state)
+    case .Rain: Rain(state)
     case .Coedo: Coedo(state)
+
+    case .END:
     }
 }
 
@@ -618,8 +625,15 @@ StarTrap :: proc(state: ^PatternState) {
 }
 
 Coedo :: proc(state: ^PatternState) {
+    positions := []v2 {
+        {0, 6},
+        {3, 8},
+        {1, 5},
+        {-3, 8},
+        {-2, 3},
+    }
 
-    if PatternTransition(state, {0, 6}) {
+    if PatternTransition(state, positions[0]) {
         return
     }
 
@@ -649,13 +663,7 @@ Coedo :: proc(state: ^PatternState) {
         }
     }
 
-    positions := []v2 {
-        {0, 6},
-        {3, 8},
-        {1, 5},
-        {-3, 8},
-        {-2, 3},
-    }
+
 
     state.timer -= rl.GetFrameTime()
     switch state.state {
@@ -695,5 +703,35 @@ Coedo :: proc(state: ^PatternState) {
             if ok {
                 boss.position = math.lerp(state.previousPos, state.targetPos, p)
             }
+    }
+}
+
+Rain :: proc(state: ^PatternState) {
+    if PatternTransition(state, {0, 3}) {
+        return
+    }
+
+    patt := Spawner {
+        type = .Stack,
+        sprite = .Circle_05,
+        minSpeed = 4,
+        maxSpeed = 7,
+        // acceleration = 0.3,
+        // angularSpeed = 10,
+        count = 5,
+        angle = AngleTypeFixed{270},
+        size = 0.4,
+    }
+
+    state.timer -= rl.GetFrameTime()
+    switch state.state {
+        case 0:
+        if state.timer < 0 {
+            state.timer = 0.2
+
+            camBounds := GetCameraBounds()
+            pos := v2{rand.float32_range(camBounds.left, camBounds.right), camBounds.top}
+            Spawn(pos, patt)
+        }
     }
 }

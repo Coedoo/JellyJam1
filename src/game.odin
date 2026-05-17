@@ -95,12 +95,16 @@ PatternHP := [Pattern]int {
     .MoveAndAimedSpread = 200,
 
     .StarTrap = 1000,
+    .Rain = 2000,
     .Coedo = 3000,
+
+    .END = 0,
 }
 
 SHIELD_TIME :: 5
 SHIELD_END_TIME :: 1
 SHIELD_VFX_TIME :: 2
+HELP_COUNT :: 5
 
 Update :: proc() {
     if rl.IsKeyPressed(.ESCAPE) {
@@ -181,7 +185,7 @@ Update :: proc() {
                     }
 
                     if boss.hp <= 0 {
-                        if IsLastPatter(g.currentPattern) {
+                        if IsLastPattern(g.currentPattern) {
                             DestroyAllBullets()
                             DestroyEntityHandle(g.enemyHandle)
 
@@ -413,6 +417,15 @@ Menu :: proc() {
             if UIButton("Back") do g.menuStage = .Main
         }
         PopStyle()
+
+        NextNodePosition({530, 400})
+        if Panel("controls", aligment = Aligment{.Middle, .Left}) {
+            UILabel("Controls")
+            UILabel("Arrows - move")
+            UILabel("Z - Fire")
+            UILabel("X - Focus")
+            UILabel("Y - Shield")
+        }
     }
 }
 
@@ -425,15 +438,18 @@ StartGame :: proc() {
     g.patternState = {}
 
     StartTransition(&g.patternState, false)
-    // g.patternState.state = -3
+    g.patternState.state = -3
     g.currentPattern = nil
-    g.currentPattern = .Coedo
+    // g.currentPattern = .Rain
 
     // g.debugGodMode = true
 
-    g.helpCount = 4
+    boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+    boss.hp = PatternHP[g.currentPattern]
 
-    // rl.PlayMusicStream(g.bgm)
+    g.helpCount = HELP_COUNT
+
+    rl.PlayMusicStream(g.bgm)
 
     ResetPlayer()
 }
@@ -452,8 +468,9 @@ ChangePatternByStep :: proc(step: int) {
     DestroyAllBullets()
 }
 
-IsLastPatter :: proc(patt: Pattern) -> bool {
-    return (cast(int) patt) == len(Pattern) - 1
+IsLastPattern :: proc(patt: Pattern) -> bool {
+    next := Pattern(cast(int) patt + 1)
+    return next == .END
 }
 
 Draw :: proc() {
@@ -469,7 +486,7 @@ Draw :: proc() {
 
         DrawSpriteSize(GetTexture(g.assetStorage, .Background), {0, 3}, rl.WHITE, g.camera.fovy + 1)
 
-        DrawGrid()
+        // DrawGrid()
 
         if g.stage != .Menu {
             if ha.IsHandleValid(g.entities, g.enemyHandle) {
@@ -639,7 +656,7 @@ game_init :: proc() {
 
     // SpawnParticles(&g.transitionParticles, 30)
 
-    StartGame()
+    // StartGame()
 }
 
 @(export)
