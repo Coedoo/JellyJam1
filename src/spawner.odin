@@ -48,6 +48,7 @@ Spawner :: struct {
     speed: f32,
     acceleration: f32,
     angularSpeed: Deg,
+    startMovementTimer: f32,
 
     size: f32,
 
@@ -91,7 +92,7 @@ GetAngle :: proc(angle: AngleType, position: v2) -> Deg {
     return 0
 }
 
-SpawnEnemyBullet :: proc(pos: v2, sprite: Image_Asset, speed, acc: f32, rot, angSpeed: Deg, size: f32) {
+SpawnEnemyBullet :: proc(pos: v2, sprite: Image_Asset, speed, acc: f32, rot, angSpeed: Deg, size: f32, startMovement: f32) {
     bullet: Entity
     bullet.flags = {.DrawSprite, .Collision, .BulletMovement, .DestroyOutsideCamera}
     bullet.owner = .Enemy
@@ -108,6 +109,8 @@ SpawnEnemyBullet :: proc(pos: v2, sprite: Image_Asset, speed, acc: f32, rot, ang
     bullet.size = size
     bullet.collisionSize = (bullet.size * BulletSizes[sprite]) / 2
 
+    bullet.startMovementTimer = startMovement
+
     ha.AppendElement(&g.entities, bullet)
 }
 
@@ -121,7 +124,8 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
             spawner.acceleration,
             GetAngle(spawner.angle, pos),
             spawner.angularSpeed,
-            spawner.size
+            spawner.size,
+            spawner.startMovementTimer,
         )
 
     case .Stack: // Spawn n bullets with stuff as above but
@@ -134,10 +138,10 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
                 spawner.acceleration,
                 GetAngle(spawner.angle, pos),
                 spawner.angularSpeed,
-                spawner.size
+                spawner.size,
+                spawner.startMovementTimer,
             )
         }
-
     case .Circle:
         baseAngle := GetAngle(spawner.angle, pos)
         for i in 0..<spawner.count {
@@ -170,7 +174,7 @@ Spawn :: proc(pos: v2, spawner: Spawner) {
                 if _, ok := c.angle.(AngleTypeParent); ok {
                     c.angle = AngleTypeFixed{ angle }
                 }
-                
+
                 Spawn(pos + {x, y}, c)
             }
         }

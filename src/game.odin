@@ -94,7 +94,8 @@ PatternHP := [Pattern]int {
 
     .MoveAndAimedSpread = 200,
 
-    .TEST = 1000
+    .StarTrap = 1000,
+    .Coedo = 3000,
 }
 
 SHIELD_TIME :: 5
@@ -158,12 +159,15 @@ Update :: proc() {
         }
 
         if .BulletMovement in e.flags {
-            e.speed += e.acceleration * frameTime
-            e.rotation += e.angularSpeed * Deg(frameTime)
+            e.startMovementTimer -= frameTime
+            if e.startMovementTimer < 0 {
+                e.speed += e.acceleration * frameTime
+                e.rotation += e.angularSpeed * Deg(frameTime)
 
-            rads := f32(e.rotation) * math.RAD_PER_DEG
-            forward := v2{math.cos(rads), math.sin(rads)}
-            e.position += e.speed * forward * frameTime
+                rads := f32(e.rotation) * math.RAD_PER_DEG
+                forward := v2{math.cos(rads), math.sin(rads)}
+                e.position += e.speed * forward * frameTime
+            }
 
             if e.owner == .Player {
                 boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
@@ -423,7 +427,7 @@ StartGame :: proc() {
     StartTransition(&g.patternState, false)
     // g.patternState.state = -3
     g.currentPattern = nil
-    g.currentPattern = .TEST
+    g.currentPattern = .Coedo
 
     // g.debugGodMode = true
 

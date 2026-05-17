@@ -63,6 +63,7 @@ Entity :: struct {
     speed: f32,
     acceleration: f32,
     angularSpeed: Deg,
+    startMovementTimer: f32,
 
     //
     sprite: Image_Asset,

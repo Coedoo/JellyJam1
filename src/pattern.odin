@@ -25,6 +25,8 @@ Pattern :: enum {
     MoveAndAimedSpread,
 
     StarTrap,
+
+    Coedo,
 }
 
 SubpatternState :: struct {
@@ -61,6 +63,7 @@ UpdatePattern :: proc(type: Pattern, state: ^PatternState) {
     case .FourCircles: FourCircles(state)
     case .MoveAndAimedSpread: MoveAndAimedSpread(state)
     case .StarTrap: StarTrap(state)
+    case .Coedo: Coedo(state)
     }
 }
 
@@ -611,5 +614,86 @@ StarTrap :: proc(state: ^PatternState) {
 
             Spawn({0, 5.5}, targeted)
         }
+    }
+}
+
+Coedo :: proc(state: ^PatternState) {
+
+    if PatternTransition(state, {0, 6}) {
+        return
+    }
+
+    patt := Spawner {
+        type = .Circle,
+        count = 8,
+        radius = 1.5,
+        angle = AngleTypeFixed { 0 },
+
+        children = {
+            {
+                type = .Circle,
+                count = 40,
+                radius = 1.5,
+                angle = AngleTypeTargeted{},
+                children = {
+                    {
+                        type = .Bullet,
+                        sprite = .Circle_05,
+                        acceleration = 2,
+                        angle = AngleTypeParent{},
+                        size = 0.4,
+                        startMovementTimer = 1,
+                    },
+                }
+            },
+        }
+    }
+
+    positions := []v2 {
+        {0, 6},
+        {3, 8},
+        {1, 5},
+        {-3, 8},
+        {-2, 3},
+    }
+
+    state.timer -= rl.GetFrameTime()
+    switch state.state {
+        case 0:
+        if state.timer < 0 {
+            state.timer = 4
+
+
+            state.movementTimer = 2
+            state.movementStep = 1
+
+            idx := state.step % len(positions)
+            nextIdx := (state.step + 1) % len(positions)
+            state.previousPos = positions[idx]
+            state.targetPos = positions[nextIdx]
+
+            Spawn(positions[idx], patt)
+            state.step += 1
+        }
+    }
+
+    MOVE_TIME :: 1.8
+    switch state.movementStep {
+        case 1:
+            state.movementTimer -= rl.GetFrameTime()
+            if state.movementTimer < 0 {
+                state.movementStep = 2
+                state.movementTimer = MOVE_TIME
+            }
+
+        case 2:
+            state.movementTimer -= rl.GetFrameTime()
+            p := 1 - state.movementTimer / MOVE_TIME
+            p = ease.circular_out(p)
+
+            boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
+            if ok {
+                boss.position = math.lerp(state.previousPos, state.targetPos, p)
+            }
     }
 }
