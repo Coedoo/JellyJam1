@@ -467,5 +467,7 @@ CreateHelp :: proc() -> bool {
 
     ha.AppendElement(&g.entities, help)
 
+    rl.PlaySound(g.shieldAudio)
+
     return true
 }

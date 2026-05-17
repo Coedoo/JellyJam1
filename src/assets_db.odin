@@ -25,6 +25,7 @@ Image_Asset :: enum {
 	Maple,
 	Scorch_01,
 	Ship,
+	Star_08,
 	Trace_07,
 }
 
@@ -34,7 +35,10 @@ Gif_Asset :: enum {
 Audio_Asset :: enum {
 	Bgm,
 	BossDestroy,
+	BossHit,
 	Fire,
+	PlayerHit,
+	Shield,
 }
 
 Shader_Asset :: enum {
@@ -104,6 +108,11 @@ Image_Assets := [Image_Asset]Asset_Info{
 		file_name  = "ship.png",
 		size_bytes = 4437,
 	},
+	.Star_08 = {
+		path       = "assets/star_08.png",
+		file_name  = "star_08.png",
+		size_bytes = 6169,
+	},
 	.Trace_07 = {
 		path       = "assets/trace_07.png",
 		file_name  = "trace_07.png",
@@ -125,10 +134,25 @@ Audio_Assets := [Audio_Asset]Asset_Info{
 		file_name  = "bossDestroy.wav",
 		size_bytes = 749274,
 	},
+	.BossHit = {
+		path       = "assets/bossHit.wav",
+		file_name  = "bossHit.wav",
+		size_bytes = 45194,
+	},
 	.Fire = {
 		path       = "assets/fire.wav",
 		file_name  = "fire.wav",
 		size_bytes = 46222,
+	},
+	.PlayerHit = {
+		path       = "assets/playerHit.wav",
+		file_name  = "playerHit.wav",
+		size_bytes = 1151962,
+	},
+	.Shield = {
+		path       = "assets/shield.wav",
+		file_name  = "shield.wav",
+		size_bytes = 920490,
 	},
 }
 

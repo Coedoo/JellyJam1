@@ -69,11 +69,15 @@ GameMemory :: struct {
 
     bossParticles: ParticleSystem,
     transitionParticles: ParticleSystem,
+    deathParticles: ParticleSystem,
 
     // Audio
     bgm: rl.Music,
     shootAudio: rl.Sound,
+    bossHitAudio: rl.Sound,
     bossDestroyAudio: rl.Sound,
+    shieldAudio: rl.Sound,
+    playerHitAudio:rl.Sound,
 
     // Debug
     debugDrawCollision: bool,
@@ -182,6 +186,10 @@ Update :: proc() {
                     // damage boss during those
                     if g.patternState.state >= 0 {
                         boss.hp -= 1
+
+                        rl.PlaySound(g.bossHitAudio)
+                        // if rl.IsSoundPlaying(g.bossHitAudio) == false {
+                        // }
                     }
 
                     if boss.hp <= 0 {
@@ -207,6 +215,9 @@ Update :: proc() {
                         e.toDestroy = true
 
                         player.hp -= 1
+
+                        SpawnParticles(&g.deathParticles, 50, player.position)
+                        rl.PlaySound(g.playerHitAudio)
 
                         DestroyAllBullets()
                         ResetPlayer()
@@ -447,6 +458,7 @@ StartGame :: proc() {
     boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
     boss.hp = PatternHP[g.currentPattern]
 
+    g.helpIdx = 0
     g.helpCount = HELP_COUNT
 
     rl.PlayMusicStream(g.bgm)
@@ -495,6 +507,7 @@ Draw :: proc() {
 
             DrawParticleSystem(&g.bossParticles)
             UpdateAndDrawParticleSystem(&g.transitionParticles)
+            UpdateAndDrawParticleSystem(&g.deathParticles)
         }
         
         iter := ha.MakeIter(&g.entities)
@@ -623,7 +636,16 @@ game_init :: proc() {
     g.bgm.looping = true
 
     g.shootAudio = rl.LoadSound(Audio_Assets[.Fire].path)
-    rl.SetSoundVolume(g.shootAudio, 0.3)
+    rl.SetSoundVolume(g.shootAudio, 0.4)
+
+    g.shieldAudio = rl.LoadSound(Audio_Assets[.Shield].path)
+    rl.SetSoundVolume(g.shieldAudio, 0.5)
+
+    g.playerHitAudio = rl.LoadSound(Audio_Assets[.PlayerHit].path)
+    rl.SetSoundVolume(g.playerHitAudio, 0.9)
+
+    g.bossHitAudio = rl.LoadSound(Audio_Assets[.BossHit].path)
+    rl.SetSoundVolume(g.bossHitAudio, 1)
 
     g.bossDestroyAudio = rl.LoadSound(Audio_Assets[.BossDestroy].path)
 
@@ -651,6 +673,19 @@ game_init :: proc() {
     g.transitionParticles.color = ColorOverLifetime{{1, 1, 1, 1}, {1, 1, 1, 0}, .Exponential_Out}
 
     InitParticleSystem(&g.transitionParticles)
+
+    g.deathParticles = DefaultParticleSystem
+    g.deathParticles.texture = GetTexture(g.assetStorage, .Star_08)
+    g.deathParticles.emitRate = 0
+    g.deathParticles.startSpeed = RandomFloat{1, 8}
+    g.deathParticles.startSize = RandomFloat{.5, 2}
+    g.deathParticles.startRotation = RandomFloat{0, 360}
+    g.deathParticles.startRotationSpeed = RandomFloat{-20, 20}
+    g.deathParticles.lifetime = RandomFloat{1, 1.5}
+    g.deathParticles.color = ColorOverLifetime{{1, 1, 1, 1}, {1, 1, 1, 0}, .Exponential_Out}
+
+    InitParticleSystem(&g.transitionParticles)
+
 
     rl.SetTextureFilter(GetTexture(g.assetStorage, .Background), .POINT)
 
