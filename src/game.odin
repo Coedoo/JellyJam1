@@ -529,7 +529,7 @@ Draw :: proc() {
         move := ease.sine_in_out(p) * 3
         size :=  g.camera.fovy + ease.exponential_in(p) * 2
 
-        DrawSpriteSize(GetTexture(g.assetStorage, .Emburgir_3), {3, move}, color, size)
+        DrawSpriteSize(GetTexture(g.assetStorage, HelpSprites[cast(HelpType) g.helpIdx]), {3, move}, color, size)
 
         rl.EndMode3D()
     }

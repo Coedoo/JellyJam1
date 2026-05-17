@@ -15,7 +15,10 @@ Unknown_Asset :: enum {
 }
 
 Image_Asset :: enum {
+	Dizzy,
 	Emburgir_3,
+	Lumi,
+	YelliHoshimi,
 	Background,
 	Circle_03,
 	Circle_05,
@@ -51,10 +54,25 @@ Unknown_Assets := [Unknown_Asset]Asset_Info{
 }
 
 Image_Assets := [Image_Asset]Asset_Info{
+	.Dizzy = {
+		path       = "assets/Dizzy.png",
+		file_name  = "Dizzy.png",
+		size_bytes = 207317,
+	},
 	.Emburgir_3 = {
 		path       = "assets/Emburgir_3.png",
 		file_name  = "Emburgir_3.png",
-		size_bytes = 1372087,
+		size_bytes = 214220,
+	},
+	.Lumi = {
+		path       = "assets/Lumi.png",
+		file_name  = "Lumi.png",
+		size_bytes = 129849,
+	},
+	.YelliHoshimi = {
+		path       = "assets/YelliHoshimi.png",
+		file_name  = "YelliHoshimi.png",
+		size_bytes = 238365,
 	},
 	.Background = {
 		path       = "assets/background.png",

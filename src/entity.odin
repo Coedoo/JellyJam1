@@ -413,6 +413,13 @@ HelpOffset := [HelpType]v2 {
     .Blue = {},
 }
 
+HelpSprites := [HelpType]Image_Asset {
+    .Purple = .Emburgir_3,
+    .Yellow = .Lumi,
+    .Red = .Dizzy,
+    .Blue = .YelliHoshimi,
+}
+
 CreateHelp :: proc() -> bool {
     if g.helpTimer > 0 || g.helpCount <= 0 {
         return false
