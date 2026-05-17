@@ -1448,6 +1448,8 @@ UISlider :: proc(value: ^f32, min, max: f32) -> (res: bool) {
             // fmt.println(mousePct)
             value^ = mousePct * (max - min)
             value^ = clamp(value^, min, max)
+
+            res = true
         }
 
         PushParent(slideArea)

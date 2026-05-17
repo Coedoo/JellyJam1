@@ -411,11 +411,17 @@ Menu :: proc() {
 
 
         case .Settings:
-            UISliderLabel("Main Audio", &g.masterVolume, 0, 1)
-            UISliderLabel("Sounds",     &g.sfxVolume,    0, 1)
+            if UISliderLabel("Master volume", &g.masterVolume, 0, 1) {
+                rl.SetMasterVolume(g.masterVolume)
+            }
+            
+            if UISliderLabel("Sounds",     &g.sfxVolume,    0, 1) {
+
+            }
 
             if UISliderLabel("Music", &g.musicVolume, 0, 1) {
-                // SetVolume(g.luminary, g.musicVolume)
+                rl.SetMusicVolume(g.bgm, g.musicVolume)
+                fmt.println(g.musicVolume)
             }
 
             UISpacer(20)
@@ -709,6 +715,10 @@ game_init :: proc() {
     for &s in HelpSprites {
         rl.SetTextureFilter(GetTexture(g.assetStorage, s.assetName), .BILINEAR)
     }
+
+    g.sfxVolume = 1
+    g.musicVolume = 1
+    g.masterVolume = 1
 
     // SpawnParticles(&g.transitionParticles, 30)
 
