@@ -78,6 +78,8 @@ GameMemory :: struct {
     shieldAudio: rl.Sound,
     playerHitAudio:rl.Sound,
 
+    pause: bool,
+
     // Debug
     debugDrawCollision: bool,
     debugGodMode: bool,
@@ -112,15 +114,55 @@ HELP_COUNT :: 5
 GOD_BULLET_DMG :: 100
 
 Update :: proc() {
-    if rl.IsKeyPressed(.ESCAPE) {
-        g.run = false
-    }
 
     rl.UpdateMusicStream(g.bgm)
 
     if g.stage == .Menu {
         Menu()
+        return
     }
+
+    if g.pause {
+
+        style := uiCtx.buttonStyle
+        style.fontSize = 50
+        style.bgColor     = {0, 0, 0, 0.3}
+        style.activeColor = {0, 0.05, 0.5, 0.7}
+        style.hotColor    = {0, 0, 0.3, 0.7}
+        PushStyle(style)
+
+        // NextNodeStyle(style)
+        NextNodePosition({70, f32(rl.GetScreenHeight()) / 2}, origin = {0, 0.5})
+        if Panel("PauseMenu", aligment = Aligment{.Middle, .Left}) {
+            UILabel("PAUSE")
+
+            UISpacer(10)
+            if UISliderLabel("Master volume", &g.masterVolume, 0, 1) {
+                rl.SetMasterVolume(g.masterVolume)
+            }
+            
+            if UISliderLabel("Sounds", &g.sfxVolume, 0, 1) {
+                UpdateSFXVolumes(g.sfxVolume)
+            }
+
+            if UISliderLabel("Music", &g.musicVolume, 0, 1) {
+                rl.SetMusicVolume(g.bgm, g.musicVolume)
+            }
+
+            UISpacer(30)
+            if UIButton("Continue") {
+                g.pause = false
+            }
+        }
+
+        if rl.IsKeyPressed(.ESCAPE) {
+            g.pause = false
+        }
+
+        PopStyle()
+        return
+    }
+
 
     if g.stage == .Victory {
         if Panel("vic", aligment = Aligment{.Middle, .Middle}) {
@@ -131,6 +173,11 @@ Update :: proc() {
             }
         }
         return;
+    }
+
+
+    if rl.IsKeyPressed(.ESCAPE) {
+        g.pause = true
     }
 
     frameTime := rl.GetFrameTime()
@@ -300,7 +347,6 @@ Update :: proc() {
         }
     }
 
-
     if rl.IsKeyPressed(.R) {
         ResetGame()
     }
@@ -418,13 +464,12 @@ Menu :: proc() {
                 rl.SetMasterVolume(g.masterVolume)
             }
             
-            if UISliderLabel("Sounds",     &g.sfxVolume,    0, 1) {
-
+            if UISliderLabel("Sounds", &g.sfxVolume, 0, 1) {
+                UpdateSFXVolumes(g.sfxVolume)
             }
 
             if UISliderLabel("Music", &g.musicVolume, 0, 1) {
                 rl.SetMusicVolume(g.bgm, g.musicVolume)
-                fmt.println(g.musicVolume)
             }
 
             UISpacer(20)
@@ -618,6 +663,15 @@ game_init_window :: proc()
     rl.SetExitKey(nil)
 }
 
+
+UpdateSFXVolumes :: proc(volume: f32) {
+    rl.SetSoundVolume(g.shootAudio,       volume * 0.4)
+    rl.SetSoundVolume(g.shieldAudio,      volume * 0.5)
+    rl.SetSoundVolume(g.playerHitAudio,   volume * 0.9)
+    rl.SetSoundVolume(g.bossHitAudio,     volume * 1)
+    rl.SetSoundVolume(g.bossDestroyAudio, volume * 1)
+}
+
 @(export)
 game_init :: proc() {
     g = new(GameMemory)
@@ -661,18 +715,12 @@ game_init :: proc() {
     g.bgm.looping = true
 
     g.shootAudio = rl.LoadSound(Audio_Assets[.Fire].path)
-    rl.SetSoundVolume(g.shootAudio, 0.4)
-
     g.shieldAudio = rl.LoadSound(Audio_Assets[.Shield].path)
-    rl.SetSoundVolume(g.shieldAudio, 0.5)
-
     g.playerHitAudio = rl.LoadSound(Audio_Assets[.PlayerHit].path)
-    rl.SetSoundVolume(g.playerHitAudio, 0.9)
-
     g.bossHitAudio = rl.LoadSound(Audio_Assets[.BossHit].path)
-    rl.SetSoundVolume(g.bossHitAudio, 1)
-
     g.bossDestroyAudio = rl.LoadSound(Audio_Assets[.BossDestroy].path)
+
+    UpdateSFXVolumes(1)
 
     ////////////////
 
