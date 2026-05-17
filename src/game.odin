@@ -43,7 +43,6 @@ GameMemory :: struct {
 
     entities: ha.HandleArray(Entity, EntityHandle, 5000),
 
-    helpCount: int,
     noDamageTimer: f32,
 
     helpTimer: f32,
@@ -137,7 +136,6 @@ Update :: proc() {
 
     if rl.IsKeyPressed(.C) {
         if CreateHelp() {
-            g.helpCount -= 1
             g.helpTimer = SHIELD_TIME
         }
     }
@@ -322,7 +320,7 @@ Update :: proc() {
         if Panel("text") {
             player := ha.GetElement(g.entities, g.playerHandle)
             UILabel("Lifes: ", i32(player.hp))
-            UILabel("Help: ", g.helpCount)
+            UILabel("Help: ", HELP_COUNT - g.helpIdx)
 
             UILabel("Entity count: ", len(g.entities.elements))
 
@@ -457,9 +455,7 @@ StartGame :: proc() {
 
     boss, ok := ha.GetElementPtr(&g.entities, g.enemyHandle)
     boss.hp = PatternHP[g.currentPattern]
-
-    g.helpIdx = 0
-    g.helpCount = HELP_COUNT
+    g.helpIdx =  0
 
     rl.PlayMusicStream(g.bgm)
 
@@ -539,10 +535,17 @@ Draw :: proc() {
         alpha := u8(clamp(math.sin(p * math.PI) * 1.5, 0, 1) * 190)
         color := rl.Color{255, 255, 255, alpha}
 
+        currentHelpSprite := HelpSprites[cast(HelpType) (g.helpIdx - 1)]
         move := ease.sine_in_out(p) * 3
         size :=  g.camera.fovy + ease.exponential_in(p) * 2
 
-        DrawSpriteSize(GetTexture(g.assetStorage, HelpSprites[cast(HelpType) g.helpIdx]), {3, move}, color, size)
+        DrawSpriteSize(
+            GetTexture(g.assetStorage, currentHelpSprite.assetName),
+            {3, move},
+            color,
+            size,
+            0,
+            currentHelpSprite.origin)
 
         rl.EndMode3D()
     }
