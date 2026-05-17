@@ -367,8 +367,8 @@ ClassicRosette :: proc(state: ^PatternState) {
     circleSpawn := Spawner {
         type = .Circle,
         count = 28,
-        // angle = AngleTypeFixed { Deg(spawnAngle) },
-        angle = AngleTypeFixed { Deg(0) },
+        angle = AngleTypeFixed { Deg(spawnAngle) },
+        // angle = AngleTypeFixed { Deg(0) },
 
         children = {
             {
